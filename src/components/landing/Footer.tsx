@@ -1,39 +1,79 @@
 import { motion } from "framer-motion";
-import { ScissorsIcon, FlowerIcon } from "@/components/icons/SalonIcons";
-import { Facebook, Instagram, Twitter, Youtube, Mail, Phone, MapPin } from "lucide-react";
+import { ScissorsIcon, FlowerIcon, SpaStoneIcon, NailPolishIcon } from "@/components/icons/SalonIcons";
+import { Animated3DIcon, GlowingOrb, FloatingParticles } from "@/components/ui/animated-3d-icon";
+import { Instagram, Facebook, Twitter, Mail, Phone, MapPin, Heart, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
-  return (
-    <footer className="bg-gradient-to-b from-background to-champagne/30 pt-20 pb-8 relative overflow-hidden">
-      {/* Top border */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-rose-gold/30 to-transparent" />
+  const currentYear = new Date().getFullYear();
 
-      <div className="container mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+  const footerLinks = {
+    product: [
+      { name: "Features", href: "#features" },
+      { name: "Pricing", href: "#pricing" },
+      { name: "Demo", href: "#demo" },
+      { name: "Updates", href: "#updates" },
+    ],
+    company: [
+      { name: "About Us", href: "#about" },
+      { name: "Careers", href: "#careers" },
+      { name: "Press", href: "#press" },
+      { name: "Blog", href: "#blog" },
+    ],
+    support: [
+      { name: "Help Center", href: "#help" },
+      { name: "Documentation", href: "#docs" },
+      { name: "Contact", href: "#contact" },
+      { name: "Status", href: "#status" },
+    ],
+    legal: [
+      { name: "Privacy", href: "#privacy" },
+      { name: "Terms", href: "#terms" },
+      { name: "Cookies", href: "#cookies" },
+      { name: "Licenses", href: "#licenses" },
+    ],
+  };
+
+  return (
+    <footer className="relative bg-gradient-to-b from-background via-champagne/10 to-background overflow-hidden">
+      {/* Decorative elements */}
+      <GlowingOrb color="pink" size="md" className="-top-32 left-1/4" />
+      <GlowingOrb color="gold" size="sm" className="bottom-20 right-1/4" />
+      <FloatingParticles count={10} className="opacity-30" />
+
+      {/* Top border */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-rose-gold/40 to-transparent" />
+
+      {/* Main footer content */}
+      <div className="container mx-auto px-6 pt-20 pb-10 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12 mb-16">
           {/* Brand column */}
-          <div>
-            <div className="flex items-center gap-3 mb-6">
+          <div className="lg:col-span-2">
+            <Link to="/" className="flex items-center gap-3 mb-6 group">
               <motion.div
-                className="p-2 rounded-xl bg-gradient-luxury"
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 6, repeat: Infinity }}
+                className="p-3 rounded-xl bg-gradient-luxury shadow-lg"
+                whileHover={{ rotate: 180 }}
+                transition={{ duration: 0.5 }}
               >
-                <ScissorsIcon size={24} className="text-white" />
+                <ScissorsIcon size={24} className="text-primary-foreground" />
               </motion.div>
               <span className="font-serif text-2xl font-bold text-gradient">
                 GlamourFlow
               </span>
-            </div>
-            <p className="text-muted-foreground leading-relaxed mb-6">
-              The ultimate luxury salon management platform. Elevate your beauty business with our premium tools.
+            </Link>
+            <p className="text-muted-foreground mb-6 leading-relaxed">
+              The ultimate luxury management platform for salons, spas, and beauty parlours. 
+              Elevate your business with premium tools.
             </p>
-            <div className="flex gap-4">
-              {[Facebook, Instagram, Twitter, Youtube].map((Icon, index) => (
+            
+            {/* Social links */}
+            <div className="flex items-center gap-3">
+              {[Instagram, Facebook, Twitter].map((Icon, index) => (
                 <motion.a
                   key={index}
                   href="#"
-                  className="p-2 rounded-full bg-blush text-rose-gold hover:bg-rose-gold hover:text-white transition-colors"
-                  whileHover={{ scale: 1.1 }}
+                  className="p-3 rounded-xl bg-card border border-border/30 text-muted-foreground hover:text-rose-gold hover:border-rose-gold/30 transition-all"
+                  whileHover={{ scale: 1.1, y: -3 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   <Icon className="w-5 h-5" />
@@ -42,80 +82,96 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h4 className="font-serif text-lg font-semibold mb-6 text-foreground">Quick Links</h4>
-            <ul className="space-y-3">
-              {["Features", "Pricing", "Demo", "About Us", "Contact"].map((link) => (
-                <li key={link}>
-                  <a
-                    href="#"
-                    className="text-muted-foreground hover:text-rose-gold transition-colors flex items-center gap-2 group"
+          {/* Links columns */}
+          {Object.entries(footerLinks).map(([title, links], columnIndex) => (
+            <div key={title}>
+              <h3 className="font-serif font-semibold text-foreground mb-4 capitalize">{title}</h3>
+              <ul className="space-y-3">
+                {links.map((link, index) => (
+                  <motion.li
+                    key={link.name}
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: columnIndex * 0.1 + index * 0.05 }}
                   >
-                    <FlowerIcon size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Services */}
-          <div>
-            <h4 className="font-serif text-lg font-semibold mb-6 text-foreground">For Salons</h4>
-            <ul className="space-y-3">
-              {["Appointment Booking", "Staff Management", "Inventory Control", "Analytics", "Multi-Branch"].map((link) => (
-                <li key={link}>
-                  <a
-                    href="#"
-                    className="text-muted-foreground hover:text-rose-gold transition-colors flex items-center gap-2 group"
-                  >
-                    <FlowerIcon size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Contact */}
-          <div>
-            <h4 className="font-serif text-lg font-semibold mb-6 text-foreground">Contact Us</h4>
-            <ul className="space-y-4">
-              <li className="flex items-center gap-3 text-muted-foreground">
-                <div className="p-2 rounded-full bg-blush text-rose-gold">
-                  <Mail className="w-4 h-4" />
-                </div>
-                hello@glamourflow.com
-              </li>
-              <li className="flex items-center gap-3 text-muted-foreground">
-                <div className="p-2 rounded-full bg-blush text-rose-gold">
-                  <Phone className="w-4 h-4" />
-                </div>
-                +1 (555) 123-4567
-              </li>
-              <li className="flex items-start gap-3 text-muted-foreground">
-                <div className="p-2 rounded-full bg-blush text-rose-gold">
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <span>123 Beauty Boulevard<br />New York, NY 10001</span>
-              </li>
-            </ul>
-          </div>
+                    <a
+                      href={link.href}
+                      className="text-muted-foreground hover:text-rose-gold transition-colors flex items-center gap-2 group"
+                    >
+                      <span className="w-1 h-1 rounded-full bg-rose-gold/50 group-hover:bg-rose-gold transition-colors" />
+                      {link.name}
+                    </a>
+                  </motion.li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
+        {/* Contact info bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="flex flex-wrap justify-center gap-8 py-8 mb-8 border-y border-border/30"
+        >
+          {[
+            { icon: <Mail className="w-5 h-5" />, text: "hello@glamourflow.com" },
+            { icon: <Phone className="w-5 h-5" />, text: "+1 (555) 123-4567" },
+            { icon: <MapPin className="w-5 h-5" />, text: "Los Angeles, CA" },
+          ].map((item, index) => (
+            <motion.div
+              key={index}
+              className="flex items-center gap-3 text-muted-foreground hover:text-rose-gold transition-colors cursor-pointer"
+              whileHover={{ scale: 1.05 }}
+            >
+              <Animated3DIcon variant="glass" size="sm" floatDelay={index * 0.3}>
+                {item.icon}
+              </Animated3DIcon>
+              <span>{item.text}</span>
+            </motion.div>
+          ))}
+        </motion.div>
+
         {/* Bottom bar */}
-        <div className="pt-8 border-t border-border/50 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
-            © 2024 GlamourFlow. All rights reserved.
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-muted-foreground text-sm flex items-center gap-2">
+            © {currentYear} GlamourFlow. Made with 
+            <motion.span
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              <Heart className="w-4 h-4 text-rose-gold fill-rose-gold" />
+            </motion.span>
+            for beauty professionals.
           </p>
-          <div className="flex gap-6 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-rose-gold transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-rose-gold transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-rose-gold transition-colors">Cookie Policy</a>
+          
+          <div className="flex items-center gap-4 text-muted-foreground">
+            <motion.div
+              animate={{ rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 4, repeat: Infinity }}
+            >
+              <FlowerIcon size={20} className="text-rose-gold/50" />
+            </motion.div>
+            <motion.div
+              animate={{ rotate: [0, -5, 5, 0] }}
+              transition={{ duration: 4, repeat: Infinity, delay: 1 }}
+            >
+              <SpaStoneIcon size={20} className="text-gold/50" />
+            </motion.div>
+            <motion.div
+              animate={{ rotate: [0, 5, -5, 0] }}
+              transition={{ duration: 4, repeat: Infinity, delay: 2 }}
+            >
+              <NailPolishIcon size={20} className="text-plum/50" />
+            </motion.div>
           </div>
         </div>
       </div>
+
+      {/* Decorative bottom gradient */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-gold via-gold to-rose-gold" />
     </footer>
   );
 };
