@@ -1,22 +1,623 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { usePublicServices, usePublicStaff, usePublicAppointments } from '@/hooks/useSalon';
+import {
+  Calendar,
+  Clock,
+  User,
+  Scissors,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Loader2,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { format, addDays, parseISO, addMinutes, parse, isBefore, isAfter } from 'date-fns';
+
+interface Service {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  discounted_price?: number;
+  duration_minutes: number;
+  category?: { name: string };
+}
+
+interface StaffMember {
+  id: string;
+  designation?: string;
+  profile?: { full_name?: string; avatar_url?: string };
+}
 
 const BookAppointment = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const [step, setStep] = useState(1);
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+  const [customerRecord, setCustomerRecord] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch customer record
+  useEffect(() => {
+    const fetchCustomer = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (data) setCustomerRecord(data);
+    };
+    fetchCustomer();
+  }, [user?.id]);
+
+  const salonId = customerRecord?.salon_id;
+
+  const { data: services = [], isLoading: servicesLoading } = usePublicServices(salonId);
+  const { data: staff = [] } = usePublicStaff(salonId);
+  const { data: existingAppointments = [] } = usePublicAppointments(salonId, selectedDate);
+
+  // Group services by category
+  const servicesByCategory = useMemo(() => {
+    const grouped: Record<string, Service[]> = {};
+    services.forEach((service: any) => {
+      const category = service.category?.name || 'Other';
+      if (!grouped[category]) grouped[category] = [];
+      grouped[category].push(service);
+    });
+    return grouped;
+  }, [services]);
+
+  // Calculate total
+  const totalAmount = selectedServices.reduce(
+    (sum, s) => sum + (s.discounted_price || s.price),
+    0
+  );
+  const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
+
+  // Generate available time slots
+  const timeSlots = useMemo(() => {
+    const slots: { time: string; available: boolean }[] = [];
+    const openTime = 9; // 9 AM
+    const closeTime = 21; // 9 PM
+
+    for (let hour = openTime; hour < closeTime; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        const slotStart = parse(timeStr, 'HH:mm', new Date());
+        const slotEnd = addMinutes(slotStart, totalDuration || 30);
+
+        // Check if slot conflicts with existing appointments
+        let isAvailable = true;
+
+        if (selectedStaff) {
+          // Check conflicts for selected staff
+          existingAppointments.forEach((apt: any) => {
+            if (apt.staff_id === selectedStaff) {
+              const aptStart = parse(apt.start_time.slice(0, 5), 'HH:mm', new Date());
+              const aptEnd = parse(apt.end_time.slice(0, 5), 'HH:mm', new Date());
+
+              // Check overlap
+              if (
+                (isAfter(slotStart, aptStart) && isBefore(slotStart, aptEnd)) ||
+                (isAfter(slotEnd, aptStart) && isBefore(slotEnd, aptEnd)) ||
+                (isBefore(slotStart, aptStart) && isAfter(slotEnd, aptEnd)) ||
+                format(slotStart, 'HH:mm') === format(aptStart, 'HH:mm')
+              ) {
+                isAvailable = false;
+              }
+            }
+          });
+        }
+
+        // Don't show past slots for today
+        if (selectedDate === format(new Date(), 'yyyy-MM-dd')) {
+          const now = new Date();
+          if (isBefore(slotStart, now)) {
+            isAvailable = false;
+          }
+        }
+
+        slots.push({ time: timeStr, available: isAvailable });
+      }
+    }
+
+    return slots;
+  }, [existingAppointments, selectedStaff, totalDuration, selectedDate]);
+
+  const handleServiceToggle = (service: Service) => {
+    setSelectedServices((prev) => {
+      const exists = prev.find((s) => s.id === service.id);
+      if (exists) {
+        return prev.filter((s) => s.id !== service.id);
+      }
+      return [...prev, service];
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!customerRecord || !salonId || !selectedTimeSlot) return;
+
+    setIsSubmitting(true);
+    try {
+      const startTime = selectedTimeSlot;
+      const startDate = parse(startTime, 'HH:mm', new Date());
+      const endDate = addMinutes(startDate, totalDuration);
+      const endTime = format(endDate, 'HH:mm');
+
+      // Create appointment
+      const { data: appointment, error: appointmentError } = await supabase
+        .from('appointments')
+        .insert({
+          salon_id: salonId,
+          customer_id: customerRecord.id,
+          staff_id: selectedStaff || null,
+          appointment_date: selectedDate,
+          start_time: startTime + ':00',
+          end_time: endTime + ':00',
+          status: 'pending',
+          is_walkin: false,
+          total_amount: totalAmount,
+          final_amount: totalAmount,
+        })
+        .select()
+        .single();
+
+      if (appointmentError) throw appointmentError;
+
+      // Create appointment services
+      const appointmentServices = selectedServices.map((service) => ({
+        appointment_id: appointment.id,
+        service_id: service.id,
+        staff_id: selectedStaff || null,
+        price: service.discounted_price || service.price,
+        duration_minutes: service.duration_minutes,
+        status: 'pending' as const,
+      }));
+
+      const { error: servicesError } = await supabase
+        .from('appointment_services')
+        .insert(appointmentServices);
+
+      if (servicesError) throw servicesError;
+
+      toast({
+        title: 'Appointment Booked!',
+        description: `Your appointment is scheduled for ${format(
+          parseISO(selectedDate),
+          'EEEE, MMMM d'
+        )} at ${startTime}`,
+      });
+
+      navigate('/customer/bookings');
+    } catch (error: any) {
+      toast({
+        title: 'Booking Failed',
+        description: error.message || 'Failed to book appointment',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Generate date options (next 14 days)
+  const dateOptions = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i));
+
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Select Services</h2>
+              {servicesLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                </div>
+              ) : Object.keys(servicesByCategory).length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Scissors className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No services available</p>
+                </div>
+              ) : (
+                Object.entries(servicesByCategory).map(([category, categoryServices]) => (
+                  <div key={category} className="mb-6">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3">{category}</h3>
+                    <div className="space-y-2">
+                      {categoryServices.map((service: Service) => {
+                        const isSelected = selectedServices.some((s) => s.id === service.id);
+                        return (
+                          <div
+                            key={service.id}
+                            onClick={() => handleServiceToggle(service)}
+                            className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
+                              isSelected
+                                ? 'border-primary bg-primary/10'
+                                : 'border-border hover:border-primary/50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => handleServiceToggle(service)}
+                              />
+                              <div>
+                                <p className="font-medium">{service.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {service.duration_minutes} min
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              {service.discounted_price ? (
+                                <>
+                                  <p className="text-sm line-through text-muted-foreground">
+                                    ₹{service.price}
+                                  </p>
+                                  <p className="font-bold text-primary">₹{service.discounted_price}</p>
+                                </>
+                              ) : (
+                                <p className="font-bold">₹{service.price}</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        );
+
+      case 2:
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Select Date</h2>
+              <div className="flex gap-2 overflow-x-auto pb-4">
+                {dateOptions.map((date) => {
+                  const dateStr = format(date, 'yyyy-MM-dd');
+                  const isSelected = selectedDate === dateStr;
+                  return (
+                    <button
+                      key={dateStr}
+                      onClick={() => setSelectedDate(dateStr)}
+                      className={`flex-shrink-0 flex flex-col items-center p-3 rounded-xl border min-w-[70px] transition-all ${
+                        isSelected
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <span className="text-xs text-muted-foreground">
+                        {format(date, 'EEE')}
+                      </span>
+                      <span className="text-lg font-bold">{format(date, 'd')}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {format(date, 'MMM')}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Select Staff (Optional)</h2>
+              <RadioGroup
+                value={selectedStaff || ''}
+                onValueChange={(val) => setSelectedStaff(val || null)}
+              >
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div
+                    onClick={() => setSelectedStaff(null)}
+                    className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                      !selectedStaff
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <RadioGroupItem value="" id="any-staff" />
+                    <div>
+                      <Label htmlFor="any-staff" className="cursor-pointer font-medium">
+                        Any Available
+                      </Label>
+                    </div>
+                  </div>
+                  {staff.map((s: any) => {
+                    const profile: any = s.profile;
+                    return (
+                      <div
+                        key={s.id}
+                        onClick={() => setSelectedStaff(s.id)}
+                        className={`flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
+                          selectedStaff === s.id
+                            ? 'border-primary bg-primary/10'
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <RadioGroupItem value={s.id} id={s.id} />
+                        <Avatar className="w-8 h-8">
+                          <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                            {profile?.full_name?.charAt(0) || 'S'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <Label htmlFor={s.id} className="cursor-pointer font-medium">
+                            {profile?.full_name || s.designation || 'Staff'}
+                          </Label>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </RadioGroup>
+            </div>
+          </motion.div>
+        );
+
+      case 3:
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Select Time</h2>
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                {timeSlots.map(({ time, available }) => (
+                  <button
+                    key={time}
+                    onClick={() => available && setSelectedTimeSlot(time)}
+                    disabled={!available}
+                    className={`p-3 rounded-xl border text-center transition-all ${
+                      selectedTimeSlot === time
+                        ? 'border-primary bg-primary/10 text-primary font-bold'
+                        : available
+                        ? 'border-border hover:border-primary/50'
+                        : 'border-border bg-secondary/50 text-muted-foreground cursor-not-allowed'
+                    }`}
+                  >
+                    {time}
+                  </button>
+                ))}
+              </div>
+              {timeSlots.filter((s) => s.available).length === 0 && (
+                <p className="text-center text-muted-foreground mt-4">
+                  No available slots for this date
+                </p>
+              )}
+            </div>
+          </motion.div>
+        );
+
+      case 4:
+        return (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Confirm Booking</h2>
+              <Card className="bg-secondary/50">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Date</p>
+                      <p className="font-medium">
+                        {format(parseISO(selectedDate), 'EEEE, MMMM d, yyyy')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Time</p>
+                      <p className="font-medium">
+                        {selectedTimeSlot} ({totalDuration} minutes)
+                      </p>
+                    </div>
+                  </div>
+                  {selectedStaff && (
+                    <div className="flex items-center gap-3">
+                      <User className="w-5 h-5 text-primary" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Staff</p>
+                        <p className="font-medium">
+                          {(staff.find((s: any) => s.id === selectedStaff) as any)?.profile
+                            ?.full_name || 'Selected Staff'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <Separator />
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Services</p>
+                    {selectedServices.map((service) => (
+                      <div
+                        key={service.id}
+                        className="flex justify-between items-center py-2"
+                      >
+                        <span>{service.name}</span>
+                        <span className="font-medium">
+                          ₹{service.discounted_price || service.price}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between items-center text-lg font-bold">
+                    <span>Total</span>
+                    <span className="text-primary">₹{totalAmount}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </motion.div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const canProceed = () => {
+    switch (step) {
+      case 1:
+        return selectedServices.length > 0;
+      case 2:
+        return selectedDate !== '';
+      case 3:
+        return selectedTimeSlot !== null;
+      case 4:
+        return true;
+      default:
+        return false;
+    }
+  };
+
   return (
     <DashboardLayout>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-primary" />
             Book Appointment
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Booking system coming soon...</p>
-        </CardContent>
-      </Card>
+          </h1>
+          <p className="text-muted-foreground">
+            {step === 1 && 'Choose the services you want'}
+            {step === 2 && 'Pick your preferred date and staff'}
+            {step === 3 && 'Select an available time slot'}
+            {step === 4 && 'Review and confirm your booking'}
+          </p>
+        </div>
+
+        {/* Progress */}
+        <div className="flex items-center gap-2 mb-8">
+          {[1, 2, 3, 4].map((s) => (
+            <React.Fragment key={s}>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                  s === step
+                    ? 'bg-primary text-primary-foreground'
+                    : s < step
+                    ? 'bg-green-500 text-white'
+                    : 'bg-secondary text-muted-foreground'
+                }`}
+              >
+                {s < step ? <Check className="w-4 h-4" /> : s}
+              </div>
+              {s < 4 && (
+                <div
+                  className={`flex-1 h-1 rounded ${
+                    s < step ? 'bg-green-500' : 'bg-secondary'
+                  }`}
+                />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* Content */}
+        <Card>
+          <CardContent className="p-6">
+            <AnimatePresence mode="wait">{renderStep()}</AnimatePresence>
+          </CardContent>
+        </Card>
+
+        {/* Summary Sidebar */}
+        {selectedServices.length > 0 && step < 4 && (
+          <Card className="mt-4">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Selected Services</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {selectedServices.map((s) => (
+                <div key={s.id} className="flex justify-between text-sm">
+                  <span>{s.name}</span>
+                  <span>₹{s.discounted_price || s.price}</span>
+                </div>
+              ))}
+              <Separator />
+              <div className="flex justify-between font-bold">
+                <span>Total ({totalDuration} min)</span>
+                <span className="text-primary">₹{totalAmount}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Navigation */}
+        <div className="flex justify-between mt-6">
+          <Button
+            variant="outline"
+            onClick={() => setStep((s) => s - 1)}
+            disabled={step === 1}
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          {step < 4 ? (
+            <Button
+              className="btn-gradient"
+              onClick={() => setStep((s) => s + 1)}
+              disabled={!canProceed()}
+            >
+              Continue
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          ) : (
+            <Button
+              className="btn-gradient"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Confirm Booking
+            </Button>
+          )}
+        </div>
+      </div>
     </DashboardLayout>
   );
 };

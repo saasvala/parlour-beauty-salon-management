@@ -10,6 +10,63 @@ export const useSalon = () => {
   return { salonId, salon };
 };
 
+// Public services for customer booking (no auth required for listing)
+export const usePublicServices = (salonId?: string) => {
+  return useQuery({
+    queryKey: ['public-services', salonId],
+    queryFn: async () => {
+      if (!salonId) return [];
+      const { data, error } = await supabase
+        .from('services')
+        .select('*, category:service_categories(*)')
+        .eq('salon_id', salonId)
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!salonId,
+  });
+};
+
+// Public staff for customer booking
+export const usePublicStaff = (salonId?: string) => {
+  return useQuery({
+    queryKey: ['public-staff', salonId],
+    queryFn: async () => {
+      if (!salonId) return [];
+      const { data, error } = await supabase
+        .from('staff')
+        .select('*, profile:profiles(full_name, avatar_url)')
+        .eq('salon_id', salonId)
+        .eq('is_active', true)
+        .order('created_at');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!salonId,
+  });
+};
+
+// Public appointments for time slot checking
+export const usePublicAppointments = (salonId?: string, date?: string) => {
+  return useQuery({
+    queryKey: ['public-appointments', salonId, date],
+    queryFn: async () => {
+      if (!salonId || !date) return [];
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('start_time, end_time, staff_id')
+        .eq('salon_id', salonId)
+        .eq('appointment_date', date)
+        .neq('status', 'cancelled');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!salonId && !!date,
+  });
+};
+
 // Services Hooks
 export const useServices = () => {
   const { salonId } = useSalon();
