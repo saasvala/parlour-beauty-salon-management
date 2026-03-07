@@ -23,6 +23,7 @@ import ServicesPage from "./pages/dashboard/Services";
 import BillingPage from "./pages/dashboard/Billing";
 import ReportsPage from "./pages/dashboard/Reports";
 import SettingsPage from "./pages/dashboard/Settings";
+import ExpensesPage from "./pages/dashboard/Expenses";
 
 // Receptionist
 import ReceptionistDashboard from "./pages/receptionist/Dashboard";
