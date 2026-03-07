@@ -23,6 +23,7 @@ import ServicesPage from "./pages/dashboard/Services";
 import BillingPage from "./pages/dashboard/Billing";
 import ReportsPage from "./pages/dashboard/Reports";
 import SettingsPage from "./pages/dashboard/Settings";
+import ExpensesPage from "./pages/dashboard/Expenses";
 
 // Receptionist
 import ReceptionistDashboard from "./pages/receptionist/Dashboard";
@@ -130,6 +131,14 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={['salon_owner', 'branch_manager']}>
                   <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/expenses"
+              element={
+                <ProtectedRoute allowedRoles={['salon_owner', 'branch_manager']}>
+                  <ExpensesPage />
                 </ProtectedRoute>
               }
             />

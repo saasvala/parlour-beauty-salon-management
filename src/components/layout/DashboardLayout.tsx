@@ -34,6 +34,7 @@ import {
   ShoppingBag,
   Star,
   ChevronDown,
+  Receipt,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -78,6 +79,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         { label: 'Services', icon: Scissors, href: '/dashboard/services' },
         { label: 'Packages', icon: Package, href: '/dashboard/packages' },
         { label: 'Billing', icon: CreditCard, href: '/dashboard/billing' },
+        { label: 'Expenses', icon: Receipt, href: '/dashboard/expenses' },
         { label: 'Inventory', icon: ShoppingBag, href: '/dashboard/inventory' },
         { label: 'Reports', icon: BarChart3, href: '/dashboard/reports' },
         { label: 'Settings', icon: Settings, href: '/dashboard/settings' },
