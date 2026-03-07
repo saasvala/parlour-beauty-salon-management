@@ -134,6 +134,14 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/dashboard/expenses"
+              element={
+                <ProtectedRoute allowedRoles={['salon_owner', 'branch_manager']}>
+                  <ExpensesPage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Receptionist Routes */}
             <Route
