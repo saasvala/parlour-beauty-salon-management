@@ -334,7 +334,7 @@ const Auth = () => {
                   <input type="checkbox" className="rounded border-border accent-primary" />
                   Remember me
                 </label>
-                <button type="button" className="text-primary hover:underline">
+                <button type="button" className="text-primary hover:underline" onClick={handleForgotPassword}>
                   Forgot password?
                 </button>
               </div>
