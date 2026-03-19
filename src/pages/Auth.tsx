@@ -85,6 +85,25 @@ const Auth = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({ title: 'Enter Email', description: 'Please enter your email address first.', variant: 'destructive' });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast({ title: 'Email Sent', description: 'Check your email for a password reset link.' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -137,8 +156,17 @@ const Auth = () => {
         } else {
           toast({
             title: "Account Created!",
-            description: "Please check your email to verify your account.",
+            description: "Your account is ready. Signing you in...",
           });
+          // Auto-confirm is enabled, so sign in immediately
+          const { error: signInError } = await signIn(email, password);
+          if (signInError) {
+            toast({
+              title: "Please Sign In",
+              description: "Account created. Please sign in with your credentials.",
+            });
+            setIsLogin(true);
+          }
         }
       }
     } catch {
