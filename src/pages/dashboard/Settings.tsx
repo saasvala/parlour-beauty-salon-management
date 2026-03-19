@@ -15,7 +15,7 @@ import {
   Building2,
   User,
   Bell,
-  Shield,
+  
   Loader2,
   Save,
   MapPin,
