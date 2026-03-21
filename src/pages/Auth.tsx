@@ -37,6 +37,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Redirect if already logged in
