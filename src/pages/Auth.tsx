@@ -107,7 +107,45 @@ const Auth = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleQuickDemo = async () => {
+    setDemoLoading(true);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/setup-demo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (!data.success) throw new Error(data.error);
+      
+      toast({
+        title: "Demo Ready! 🎉",
+        description: `Signing in as demo salon owner...`,
+      });
+      
+      // Sign in with demo credentials
+      const { error: signInError } = await signIn(data.email, data.password);
+      if (signInError) throw signInError;
+      
+    } catch (error: any) {
+      toast({
+        title: "Demo Setup Failed",
+        description: error.message || "Could not create demo account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDemoLoading(false);
+    }
+  };
+
+
     e.preventDefault();
     
     if (!validateForm()) return;
