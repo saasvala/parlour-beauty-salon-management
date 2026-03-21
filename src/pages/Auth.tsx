@@ -16,7 +16,8 @@ import {
   EyeOff,
   ArrowLeft,
   User,
-  Loader2
+  Loader2,
+  Sparkles
 } from "lucide-react";
 import loginImage from "@/assets/login-salon.jpg";
 
@@ -36,6 +37,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Redirect if already logged in
@@ -105,6 +107,43 @@ const Auth = () => {
     }
   };
 
+  const handleQuickDemo = async () => {
+    setDemoLoading(true);
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/setup-demo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (!data.success) throw new Error(data.error);
+      
+      toast({
+        title: "Demo Ready! 🎉",
+        description: `Signing in as demo salon owner...`,
+      });
+      
+      // Sign in with demo credentials
+      const { error: signInError } = await signIn(data.email, data.password);
+      if (signInError) throw signInError;
+      
+    } catch (error: any) {
+      toast({
+        title: "Demo Setup Failed",
+        description: error.message || "Could not create demo account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDemoLoading(false);
+    }
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -370,6 +409,32 @@ const Auth = () => {
               {isLogin ? "Sign Up" : "Sign In"}
             </button>
           </p>
+
+          {/* Quick Demo Button */}
+          <div className="mt-6 pt-6 border-t border-border">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleQuickDemo}
+              disabled={demoLoading || loading}
+              className="w-full h-12 rounded-xl border-primary/30 hover:bg-primary/10 hover:border-primary transition-all"
+            >
+              {demoLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  Setting up demo salon...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5 mr-2 text-primary" />
+                  Quick Demo — Try Instantly
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              Creates a demo salon with sample data. No signup needed.
+            </p>
+          </div>
         </motion.div>
       </div>
     </div>
