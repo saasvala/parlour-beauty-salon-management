@@ -409,6 +409,32 @@ const Auth = () => {
               {isLogin ? "Sign Up" : "Sign In"}
             </button>
           </p>
+
+          {/* Quick Demo Button */}
+          <div className="mt-6 pt-6 border-t border-border">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleQuickDemo}
+              disabled={demoLoading || loading}
+              className="w-full h-12 rounded-xl border-primary/30 hover:bg-primary/10 hover:border-primary transition-all"
+            >
+              {demoLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  Setting up demo salon...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5 mr-2 text-primary" />
+                  Quick Demo — Try Instantly
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              Creates a demo salon with sample data. No signup needed.
+            </p>
+          </div>
         </motion.div>
       </div>
     </div>
