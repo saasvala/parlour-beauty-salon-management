@@ -16,7 +16,8 @@ import {
   EyeOff,
   ArrowLeft,
   User,
-  Loader2
+  Loader2,
+  Sparkles
 } from "lucide-react";
 import loginImage from "@/assets/login-salon.jpg";
 
