@@ -35,8 +35,10 @@ import {
   Star,
   ChevronDown,
   Receipt,
+  Home,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 interface NavItem {
   label: string;
@@ -122,8 +124,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate('/', { replace: true });
   };
+
+  const settingsHref = isSuperAdmin()
+    ? '/super-admin/settings'
+    : isSalonOwner()
+    ? '/dashboard/settings'
+    : isReceptionist()
+    ? '/receptionist'
+    : isBeautician()
+    ? '/staff'
+    : '/customer';
 
   const getRoleLabel = () => {
     const labels: Record<string, string> = {
@@ -157,8 +169,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative">
+          <div className="flex items-center gap-1">
+            <Link to="/" title="Back to Home">
+              <Button variant="ghost" size="icon"><Home className="w-5 h-5" /></Button>
+            </Link>
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" className="relative" onClick={() => navigate(settingsHref)} title="Notifications">
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
             </Button>
@@ -292,13 +308,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/profile')}>
+              <DropdownMenuItem onClick={() => navigate(settingsHref)}>
                 <UserCircle className="w-4 h-4 mr-2" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/settings')}>
+              <DropdownMenuItem onClick={() => navigate(settingsHref)}>
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/')}>
+                <Home className="w-4 h-4 mr-2" />
+                Back to Home
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
@@ -325,8 +345,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             </h1>
           </div>
 
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="relative">
+          <div className="flex items-center gap-2">
+            <Link to="/" title="Back to Home">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Home className="w-4 h-4" />
+                <span className="hidden xl:inline">Back to Home</span>
+              </Button>
+            </Link>
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" className="relative" onClick={() => navigate(settingsHref)} title="Notifications">
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
             </Button>

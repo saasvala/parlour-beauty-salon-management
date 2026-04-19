@@ -110,30 +110,25 @@ const Auth = () => {
   const handleQuickDemo = async () => {
     setDemoLoading(true);
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
-      const response = await fetch(`${supabaseUrl}/functions/v1/setup-demo`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': supabaseKey,
-        },
+      // Clear any stale session before creating a new demo account
+      await supabase.auth.signOut().catch(() => {});
+
+      const { data, error } = await supabase.functions.invoke('setup-demo', {
+        body: {},
       });
-      
-      const data = await response.json();
-      
-      if (!data.success) throw new Error(data.error);
-      
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Demo setup failed');
+
       toast({
         title: "Demo Ready! 🎉",
         description: `Signing in as demo salon owner...`,
       });
-      
+
       // Sign in with demo credentials
       const { error: signInError } = await signIn(data.email, data.password);
       if (signInError) throw signInError;
-      
+
     } catch (error: any) {
       toast({
         title: "Demo Setup Failed",
