@@ -31,7 +31,8 @@ Deno.serve(async (req) => {
     if (authError) throw authError;
     const userId = authData.user.id;
 
-    // 2. Assign salon_owner role
+    // 2. Assign salon_owner role (handle_new_user trigger inserts 'customer' first; clear it)
+    await supabase.from("user_roles").delete().eq("user_id", userId);
     await supabase.from("user_roles").insert({ user_id: userId, role: "salon_owner" });
 
     // 3. Create salon
