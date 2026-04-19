@@ -15,19 +15,23 @@ import {
   Building2,
   User,
   Bell,
-  
   Loader2,
   Save,
   MapPin,
   Phone,
   Mail,
   FileText,
+  Palette,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTheme } from 'next-themes';
 
 const SettingsPage = () => {
   const { user, profile, salon, refreshProfile } = useAuth();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   const [saving, setSaving] = useState(false);
   const [creatingSalon, setCreatingSalon] = useState(false);
 
@@ -217,7 +221,7 @@ const SettingsPage = () => {
         )}
 
         <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="profile">
               <User className="w-4 h-4 mr-2" />
               Profile
@@ -225,6 +229,10 @@ const SettingsPage = () => {
             <TabsTrigger value="salon">
               <Building2 className="w-4 h-4 mr-2" />
               Salon
+            </TabsTrigger>
+            <TabsTrigger value="appearance">
+              <Palette className="w-4 h-4 mr-2" />
+              Appearance
             </TabsTrigger>
             <TabsTrigger value="notifications">
               <Bell className="w-4 h-4 mr-2" />
@@ -378,6 +386,42 @@ const SettingsPage = () => {
                     {salon ? 'Update Salon' : 'Create Salon'}
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="appearance">
+            <Card>
+              <CardHeader>
+                <CardTitle>Theme & Appearance</CardTitle>
+                <CardDescription>Choose how GlamFlow looks to you</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setTheme('light')}
+                    className={`p-6 rounded-xl border-2 transition-all flex flex-col items-center gap-3 ${
+                      theme === 'light' ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <Sun className="w-8 h-8" />
+                    <span className="font-medium">Light Mode</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTheme('dark')}
+                    className={`p-6 rounded-xl border-2 transition-all flex flex-col items-center gap-3 ${
+                      theme === 'dark' ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <Moon className="w-8 h-8" />
+                    <span className="font-medium">Dark Mode</span>
+                  </button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Currently using <span className="font-semibold text-foreground capitalize">{theme}</span> theme.
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
