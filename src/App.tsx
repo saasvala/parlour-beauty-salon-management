@@ -39,6 +39,9 @@ import CustomerDashboard from "./pages/customer/Dashboard";
 import BookAppointment from "./pages/customer/BookAppointment";
 import CustomerBookings from "./pages/customer/Bookings";
 
+// Dev tools
+import RlsTester from "./pages/dev/RlsTester";
+
 const queryClient = new QueryClient();
 
 const ownerRoles: ('salon_owner' | 'branch_manager')[] = ['salon_owner', 'branch_manager'];
