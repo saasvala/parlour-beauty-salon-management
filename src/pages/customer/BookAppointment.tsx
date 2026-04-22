@@ -31,6 +31,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays, parseISO, addMinutes, parse, isBefore, isAfter } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ServicePreviewCard } from '@/components/booking/ServicePreviewCard';
 
 interface Service {
   id: string;
@@ -558,18 +559,23 @@ const BookAppointment = () => {
                   )}
                   <Separator />
                   <div>
-                    <p className="text-sm text-muted-foreground mb-2">Services</p>
-                    {selectedServices.map((service) => (
-                      <div
-                        key={service.id}
-                        className="flex justify-between items-center py-2"
-                      >
-                        <span>{service.name}</span>
-                        <span className="font-medium">
-                          ₹{service.discounted_price || service.price}
-                        </span>
-                      </div>
-                    ))}
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                      <p className="text-sm font-medium text-foreground">Your Curated Experience</p>
+                    </div>
+                    <div className="grid gap-3">
+                      {selectedServices.map((service, idx) => (
+                        <ServicePreviewCard
+                          key={service.id}
+                          name={service.name}
+                          category={service.category?.name}
+                          durationMinutes={service.duration_minutes}
+                          price={service.discounted_price || service.price}
+                          originalPrice={service.discounted_price ? service.price : undefined}
+                          index={idx}
+                        />
+                      ))}
+                    </div>
                   </div>
                   <Separator />
                   <div className="flex justify-between items-center text-lg font-bold">
