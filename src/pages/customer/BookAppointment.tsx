@@ -431,29 +431,84 @@ const BookAppointment = () => {
             className="space-y-6"
           >
             <div>
-              <h2 className="text-xl font-semibold mb-4">Select Time</h2>
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                {timeSlots.map(({ time, available }) => (
-                  <button
-                    key={time}
-                    onClick={() => available && setSelectedTimeSlot(time)}
-                    disabled={!available}
-                    className={`p-3 rounded-xl border text-center transition-all ${
-                      selectedTimeSlot === time
-                        ? 'border-primary bg-primary/10 text-primary font-bold'
-                        : available
-                        ? 'border-border hover:border-primary/50'
-                        : 'border-border bg-secondary/50 text-muted-foreground cursor-not-allowed'
-                    }`}
-                  >
-                    {time}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Select Time</h2>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded border border-border bg-background" /> Available
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded border border-border bg-secondary/50" /> Unavailable
+                  </span>
+                </div>
               </div>
+
+              <Alert className="mb-4 border-primary/30 bg-primary/5">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-xs">
+                  Hover over greyed-out slots to see why they're unavailable. Slot duration is based on your selected services ({totalDuration} min).
+                </AlertDescription>
+              </Alert>
+
+              <TooltipProvider delayDuration={150}>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  {timeSlots.map(({ time, available, reason }) => {
+                    const btn = (
+                      <button
+                        key={time}
+                        onClick={() => available && setSelectedTimeSlot(time)}
+                        disabled={!available}
+                        aria-label={available ? `Available at ${time}` : `Unavailable at ${time}: ${reason}`}
+                        className={`w-full p-3 rounded-xl border text-center transition-all ${
+                          selectedTimeSlot === time
+                            ? 'border-primary bg-primary/10 text-primary font-bold'
+                            : available
+                            ? 'border-border hover:border-primary/50'
+                            : 'border-border bg-secondary/50 text-muted-foreground cursor-not-allowed line-through'
+                        }`}
+                      >
+                        {time}
+                      </button>
+                    );
+                    if (available) return <div key={time}>{btn}</div>;
+                    return (
+                      <Tooltip key={time}>
+                        <TooltipTrigger asChild>
+                          <span className="block">{btn}</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[220px] text-xs">
+                          {reason || 'Unavailable'}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
+              </TooltipProvider>
+
               {timeSlots.filter((s) => s.available).length === 0 && (
-                <p className="text-center text-muted-foreground mt-4">
-                  No available slots for this date
+                <Alert variant="destructive" className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>No available slots</AlertTitle>
+                  <AlertDescription>
+                    {selectedStaff
+                      ? 'The selected staff member is fully booked on this date. Try picking another date or choose "Any Available" staff.'
+                      : 'All slots for this date are taken or have passed. Please select a different date.'}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {!selectedTimeSlot && timeSlots.some((s) => s.available) && (
+                <p className="text-center text-sm text-muted-foreground mt-4">
+                  Please choose an available time slot to continue.
                 </p>
+              )}
+
+              {selectedSlotMeta && !selectedSlotMeta.available && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>This slot is no longer available</AlertTitle>
+                  <AlertDescription>{selectedSlotMeta.reason}</AlertDescription>
+                </Alert>
               )}
             </div>
           </motion.div>
