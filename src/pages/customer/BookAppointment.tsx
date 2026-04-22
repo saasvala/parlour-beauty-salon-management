@@ -99,11 +99,13 @@ const BookAppointment = () => {
   );
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
 
-  // Generate available time slots
+  // Generate available time slots with detailed reasons
   const timeSlots = useMemo(() => {
-    const slots: { time: string; available: boolean }[] = [];
+    const slots: { time: string; available: boolean; reason?: string }[] = [];
     const openTime = 9; // 9 AM
     const closeTime = 21; // 9 PM
+    const now = new Date();
+    const isToday = selectedDate === format(now, 'yyyy-MM-dd');
 
     for (let hour = openTime; hour < closeTime; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
@@ -111,43 +113,69 @@ const BookAppointment = () => {
         const slotStart = parse(timeStr, 'HH:mm', new Date());
         const slotEnd = addMinutes(slotStart, totalDuration || 30);
 
-        // Check if slot conflicts with existing appointments
         let isAvailable = true;
+        let reason: string | undefined;
 
-        if (selectedStaff) {
-          // Check conflicts for selected staff
-          existingAppointments.forEach((apt: any) => {
-            if (apt.staff_id === selectedStaff) {
-              const aptStart = parse(apt.start_time.slice(0, 5), 'HH:mm', new Date());
-              const aptEnd = parse(apt.end_time.slice(0, 5), 'HH:mm', new Date());
-
-              // Check overlap
-              if (
-                (isAfter(slotStart, aptStart) && isBefore(slotStart, aptEnd)) ||
-                (isAfter(slotEnd, aptStart) && isBefore(slotEnd, aptEnd)) ||
-                (isBefore(slotStart, aptStart) && isAfter(slotEnd, aptEnd)) ||
-                format(slotStart, 'HH:mm') === format(aptStart, 'HH:mm')
-              ) {
-                isAvailable = false;
-              }
-            }
-          });
+        // 1. Past slot for today
+        if (isToday && isBefore(slotStart, now)) {
+          isAvailable = false;
+          reason = 'This time has already passed today';
         }
 
-        // Don't show past slots for today
-        if (selectedDate === format(new Date(), 'yyyy-MM-dd')) {
-          const now = new Date();
-          if (isBefore(slotStart, now)) {
-            isAvailable = false;
+        // 2. Slot would run past closing time
+        const closeDate = parse(`${closeTime}:00`, 'HH:mm', new Date());
+        if (isAvailable && isAfter(slotEnd, closeDate)) {
+          isAvailable = false;
+          reason = `Service ends after closing time (${closeTime}:00)`;
+        }
+
+        // 3. Conflicts with existing appointments
+        if (isAvailable) {
+          const overlapping = (existingAppointments as any[]).filter((apt) => {
+            const aptStart = parse(apt.start_time.slice(0, 5), 'HH:mm', new Date());
+            const aptEnd = parse(apt.end_time.slice(0, 5), 'HH:mm', new Date());
+            return (
+              (isAfter(slotStart, aptStart) && isBefore(slotStart, aptEnd)) ||
+              (isAfter(slotEnd, aptStart) && isBefore(slotEnd, aptEnd)) ||
+              (isBefore(slotStart, aptStart) && isAfter(slotEnd, aptEnd)) ||
+              format(slotStart, 'HH:mm') === format(aptStart, 'HH:mm')
+            );
+          });
+
+          if (selectedStaff) {
+            const conflict = overlapping.find((a) => a.staff_id === selectedStaff);
+            if (conflict) {
+              isAvailable = false;
+              reason = `Selected staff is already booked from ${conflict.start_time.slice(0, 5)} to ${conflict.end_time.slice(0, 5)}`;
+            }
+          } else if (staff.length > 0) {
+            const busyStaffIds = new Set(
+              overlapping.map((a) => a.staff_id).filter(Boolean)
+            );
+            if (busyStaffIds.size >= staff.length) {
+              isAvailable = false;
+              reason = 'All staff members are booked during this time';
+            }
           }
         }
 
-        slots.push({ time: timeStr, available: isAvailable });
+        slots.push({ time: timeStr, available: isAvailable, reason });
       }
     }
 
     return slots;
-  }, [existingAppointments, selectedStaff, totalDuration, selectedDate]);
+  }, [existingAppointments, selectedStaff, totalDuration, selectedDate, staff]);
+
+  // Auto-clear selected time slot if it becomes invalid (e.g., staff changed)
+  useEffect(() => {
+    if (!selectedTimeSlot) return;
+    const slot = timeSlots.find((s) => s.time === selectedTimeSlot);
+    if (!slot || !slot.available) {
+      setSelectedTimeSlot(null);
+    }
+  }, [timeSlots, selectedTimeSlot]);
+
+  const selectedSlotMeta = timeSlots.find((s) => s.time === selectedTimeSlot);
 
   const handleServiceToggle = (service: Service) => {
     setSelectedServices((prev) => {
