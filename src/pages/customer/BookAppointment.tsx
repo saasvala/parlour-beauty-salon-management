@@ -24,9 +24,13 @@ import {
   ChevronRight,
   Sparkles,
   Loader2,
+  AlertCircle,
+  Info,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays, parseISO, addMinutes, parse, isBefore, isAfter } from 'date-fns';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Service {
   id: string;
