@@ -226,14 +226,17 @@ export const AppointmentForm: React.FC<AppointmentFormProps> = ({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Assign Staff</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={(value) => field.onChange(value === 'any' ? '' : value)}
+                defaultValue={field.value || 'any'}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select staff (optional)" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Any available</SelectItem>
+                  <SelectItem value="any">Any available</SelectItem>
                   {staff.map((s) => (
                     <SelectItem key={s.id} value={s.id}>
                       {s.profile?.full_name || 'Staff'} {s.designation && `- ${s.designation}`}
