@@ -24,9 +24,13 @@ import {
   ChevronRight,
   Sparkles,
   Loader2,
+  AlertCircle,
+  Info,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays, parseISO, addMinutes, parse, isBefore, isAfter } from 'date-fns';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Service {
   id: string;
@@ -95,11 +99,13 @@ const BookAppointment = () => {
   );
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
 
-  // Generate available time slots
+  // Generate available time slots with detailed reasons
   const timeSlots = useMemo(() => {
-    const slots: { time: string; available: boolean }[] = [];
+    const slots: { time: string; available: boolean; reason?: string }[] = [];
     const openTime = 9; // 9 AM
     const closeTime = 21; // 9 PM
+    const now = new Date();
+    const isToday = selectedDate === format(now, 'yyyy-MM-dd');
 
     for (let hour = openTime; hour < closeTime; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
@@ -107,43 +113,69 @@ const BookAppointment = () => {
         const slotStart = parse(timeStr, 'HH:mm', new Date());
         const slotEnd = addMinutes(slotStart, totalDuration || 30);
 
-        // Check if slot conflicts with existing appointments
         let isAvailable = true;
+        let reason: string | undefined;
 
-        if (selectedStaff) {
-          // Check conflicts for selected staff
-          existingAppointments.forEach((apt: any) => {
-            if (apt.staff_id === selectedStaff) {
-              const aptStart = parse(apt.start_time.slice(0, 5), 'HH:mm', new Date());
-              const aptEnd = parse(apt.end_time.slice(0, 5), 'HH:mm', new Date());
-
-              // Check overlap
-              if (
-                (isAfter(slotStart, aptStart) && isBefore(slotStart, aptEnd)) ||
-                (isAfter(slotEnd, aptStart) && isBefore(slotEnd, aptEnd)) ||
-                (isBefore(slotStart, aptStart) && isAfter(slotEnd, aptEnd)) ||
-                format(slotStart, 'HH:mm') === format(aptStart, 'HH:mm')
-              ) {
-                isAvailable = false;
-              }
-            }
-          });
+        // 1. Past slot for today
+        if (isToday && isBefore(slotStart, now)) {
+          isAvailable = false;
+          reason = 'This time has already passed today';
         }
 
-        // Don't show past slots for today
-        if (selectedDate === format(new Date(), 'yyyy-MM-dd')) {
-          const now = new Date();
-          if (isBefore(slotStart, now)) {
-            isAvailable = false;
+        // 2. Slot would run past closing time
+        const closeDate = parse(`${closeTime}:00`, 'HH:mm', new Date());
+        if (isAvailable && isAfter(slotEnd, closeDate)) {
+          isAvailable = false;
+          reason = `Service ends after closing time (${closeTime}:00)`;
+        }
+
+        // 3. Conflicts with existing appointments
+        if (isAvailable) {
+          const overlapping = (existingAppointments as any[]).filter((apt) => {
+            const aptStart = parse(apt.start_time.slice(0, 5), 'HH:mm', new Date());
+            const aptEnd = parse(apt.end_time.slice(0, 5), 'HH:mm', new Date());
+            return (
+              (isAfter(slotStart, aptStart) && isBefore(slotStart, aptEnd)) ||
+              (isAfter(slotEnd, aptStart) && isBefore(slotEnd, aptEnd)) ||
+              (isBefore(slotStart, aptStart) && isAfter(slotEnd, aptEnd)) ||
+              format(slotStart, 'HH:mm') === format(aptStart, 'HH:mm')
+            );
+          });
+
+          if (selectedStaff) {
+            const conflict = overlapping.find((a) => a.staff_id === selectedStaff);
+            if (conflict) {
+              isAvailable = false;
+              reason = `Selected staff is already booked from ${conflict.start_time.slice(0, 5)} to ${conflict.end_time.slice(0, 5)}`;
+            }
+          } else if (staff.length > 0) {
+            const busyStaffIds = new Set(
+              overlapping.map((a) => a.staff_id).filter(Boolean)
+            );
+            if (busyStaffIds.size >= staff.length) {
+              isAvailable = false;
+              reason = 'All staff members are booked during this time';
+            }
           }
         }
 
-        slots.push({ time: timeStr, available: isAvailable });
+        slots.push({ time: timeStr, available: isAvailable, reason });
       }
     }
 
     return slots;
-  }, [existingAppointments, selectedStaff, totalDuration, selectedDate]);
+  }, [existingAppointments, selectedStaff, totalDuration, selectedDate, staff]);
+
+  // Auto-clear selected time slot if it becomes invalid (e.g., staff changed)
+  useEffect(() => {
+    if (!selectedTimeSlot) return;
+    const slot = timeSlots.find((s) => s.time === selectedTimeSlot);
+    if (!slot || !slot.available) {
+      setSelectedTimeSlot(null);
+    }
+  }, [timeSlots, selectedTimeSlot]);
+
+  const selectedSlotMeta = timeSlots.find((s) => s.time === selectedTimeSlot);
 
   const handleServiceToggle = (service: Service) => {
     setSelectedServices((prev) => {
@@ -399,29 +431,84 @@ const BookAppointment = () => {
             className="space-y-6"
           >
             <div>
-              <h2 className="text-xl font-semibold mb-4">Select Time</h2>
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                {timeSlots.map(({ time, available }) => (
-                  <button
-                    key={time}
-                    onClick={() => available && setSelectedTimeSlot(time)}
-                    disabled={!available}
-                    className={`p-3 rounded-xl border text-center transition-all ${
-                      selectedTimeSlot === time
-                        ? 'border-primary bg-primary/10 text-primary font-bold'
-                        : available
-                        ? 'border-border hover:border-primary/50'
-                        : 'border-border bg-secondary/50 text-muted-foreground cursor-not-allowed'
-                    }`}
-                  >
-                    {time}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Select Time</h2>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded border border-border bg-background" /> Available
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded border border-border bg-secondary/50" /> Unavailable
+                  </span>
+                </div>
               </div>
+
+              <Alert className="mb-4 border-primary/30 bg-primary/5">
+                <Info className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-xs">
+                  Hover over greyed-out slots to see why they're unavailable. Slot duration is based on your selected services ({totalDuration} min).
+                </AlertDescription>
+              </Alert>
+
+              <TooltipProvider delayDuration={150}>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  {timeSlots.map(({ time, available, reason }) => {
+                    const btn = (
+                      <button
+                        key={time}
+                        onClick={() => available && setSelectedTimeSlot(time)}
+                        disabled={!available}
+                        aria-label={available ? `Available at ${time}` : `Unavailable at ${time}: ${reason}`}
+                        className={`w-full p-3 rounded-xl border text-center transition-all ${
+                          selectedTimeSlot === time
+                            ? 'border-primary bg-primary/10 text-primary font-bold'
+                            : available
+                            ? 'border-border hover:border-primary/50'
+                            : 'border-border bg-secondary/50 text-muted-foreground cursor-not-allowed line-through'
+                        }`}
+                      >
+                        {time}
+                      </button>
+                    );
+                    if (available) return <div key={time}>{btn}</div>;
+                    return (
+                      <Tooltip key={time}>
+                        <TooltipTrigger asChild>
+                          <span className="block">{btn}</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[220px] text-xs">
+                          {reason || 'Unavailable'}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
+              </TooltipProvider>
+
               {timeSlots.filter((s) => s.available).length === 0 && (
-                <p className="text-center text-muted-foreground mt-4">
-                  No available slots for this date
+                <Alert variant="destructive" className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>No available slots</AlertTitle>
+                  <AlertDescription>
+                    {selectedStaff
+                      ? 'The selected staff member is fully booked on this date. Try picking another date or choose "Any Available" staff.'
+                      : 'All slots for this date are taken or have passed. Please select a different date.'}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {!selectedTimeSlot && timeSlots.some((s) => s.available) && (
+                <p className="text-center text-sm text-muted-foreground mt-4">
+                  Please choose an available time slot to continue.
                 </p>
+              )}
+
+              {selectedSlotMeta && !selectedSlotMeta.available && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>This slot is no longer available</AlertTitle>
+                  <AlertDescription>{selectedSlotMeta.reason}</AlertDescription>
+                </Alert>
               )}
             </div>
           </motion.div>
@@ -507,9 +594,9 @@ const BookAppointment = () => {
       case 2:
         return selectedDate !== '';
       case 3:
-        return selectedTimeSlot !== null;
+        return selectedTimeSlot !== null && !!selectedSlotMeta?.available;
       case 4:
-        return true;
+        return selectedTimeSlot !== null && !!selectedSlotMeta?.available;
       default:
         return false;
     }
