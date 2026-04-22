@@ -594,9 +594,9 @@ const BookAppointment = () => {
       case 2:
         return selectedDate !== '';
       case 3:
-        return selectedTimeSlot !== null;
+        return selectedTimeSlot !== null && !!selectedSlotMeta?.available;
       case 4:
-        return true;
+        return selectedTimeSlot !== null && !!selectedSlotMeta?.available;
       default:
         return false;
     }
