@@ -95,6 +95,9 @@ const App = () => (
             {/* Legacy admin route redirect */}
             <Route path="/admin" element={<Auth />} />
 
+            {/* Dev Tools */}
+            <Route path="/dev/rls-test" element={<RlsTester />} />
+
             {/* Catch-all */}
             <Route path="*" element={<NotFound />} />
           </Routes>
