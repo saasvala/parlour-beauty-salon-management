@@ -738,6 +738,81 @@ const BookAppointment = () => {
                   </AlertDescription>
                 </Alert>
               )}
+
+              {/* Revalidation status — re-checks restored selections against fresh data */}
+              {revalStatus === 'checking' && (
+                <Alert className="mb-4 border-primary/30 bg-primary/5">
+                  <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                  <AlertTitle>Revalidating your booking…</AlertTitle>
+                  <AlertDescription>
+                    Confirming your services, staff and time slot are still available.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {revalStatus === 'issues' && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Some details have changed since you last booked</AlertTitle>
+                  <AlertDescription className="space-y-2">
+                    <ul className="list-disc pl-5 text-sm space-y-1">
+                      {revalIssues.map((issue, i) => (
+                        <li key={i}>{issue}</li>
+                      ))}
+                    </ul>
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          // Drop only the parts that are stale and send the user
+                          // back to the earliest broken step so they can re-pick.
+                          const liveServiceIds = new Set((services as any[]).map((s) => s.id));
+                          const cleanedServices = selectedServices.filter((s) =>
+                            liveServiceIds.has(s.id)
+                          );
+                          const liveStaff =
+                            selectedStaff &&
+                            (staff as any[]).find((s) => s.id === selectedStaff);
+
+                          setSelectedServices(cleanedServices);
+                          if (selectedStaff && !liveStaff) setSelectedStaff(null);
+                          setSelectedTimeSlot(null);
+
+                          if (cleanedServices.length === 0) setStep(1);
+                          else setStep(3);
+                        }}
+                      >
+                        Fix selections
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          if (user?.id && typeof window !== 'undefined') {
+                            try {
+                              window.localStorage.removeItem(STORAGE_KEY_PREFIX + user.id);
+                            } catch {
+                              // ignore
+                            }
+                          }
+                          setSelectedServices([]);
+                          setSelectedStaff(null);
+                          setSelectedTimeSlot(null);
+                          setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
+                          setWasRestored(false);
+                          setStep(1);
+                        }}
+                      >
+                        Start over
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <h2 className="text-xl font-semibold mb-4">Confirm Booking</h2>
               <Card className="bg-secondary/50">
                 <CardContent className="p-6 space-y-4">
