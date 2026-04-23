@@ -96,6 +96,10 @@ const BookAppointment = () => {
     !!(initial && (initial.selectedServices?.length || initial.selectedTimeSlot))
   );
   const [restoreDismissed, setRestoreDismissed] = useState(false);
+  // Revalidation of restored state when reaching Step 4
+  type RevalStatus = 'idle' | 'checking' | 'ok' | 'issues';
+  const [revalStatus, setRevalStatus] = useState<RevalStatus>('idle');
+  const [revalIssues, setRevalIssues] = useState<string[]>([]);
 
   // Persist wizard progress so refresh on step 4 restores selections
   useEffect(() => {
