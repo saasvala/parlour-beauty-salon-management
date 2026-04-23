@@ -96,6 +96,10 @@ const BookAppointment = () => {
     !!(initial && (initial.selectedServices?.length || initial.selectedTimeSlot))
   );
   const [restoreDismissed, setRestoreDismissed] = useState(false);
+  // Revalidation of restored state when reaching Step 4
+  type RevalStatus = 'idle' | 'checking' | 'ok' | 'issues';
+  const [revalStatus, setRevalStatus] = useState<RevalStatus>('idle');
+  const [revalIssues, setRevalIssues] = useState<string[]>([]);
 
   // Persist wizard progress so refresh on step 4 restores selections
   useEffect(() => {
@@ -127,6 +131,7 @@ const BookAppointment = () => {
     const t = setTimeout(() => setPreviewReady(true), 120);
     return () => clearTimeout(t);
   }, [step, selectedServices]);
+
 
   // Fetch customer record
   useEffect(() => {
@@ -243,6 +248,86 @@ const BookAppointment = () => {
   }, [timeSlots, selectedTimeSlot]);
 
   const selectedSlotMeta = timeSlots.find((s) => s.time === selectedTimeSlot);
+
+  // Revalidate restored selections when reaching Step 4: re-check that
+  // services still exist & active, staff still exists & active, and the time
+  // slot is still available against freshly fetched data.
+  useEffect(() => {
+    if (step !== 4) {
+      setRevalStatus('idle');
+      setRevalIssues([]);
+      return;
+    }
+    if (!wasRestored) {
+      setRevalStatus('ok');
+      setRevalIssues([]);
+      return;
+    }
+    if (servicesLoading) {
+      setRevalStatus('checking');
+      return;
+    }
+
+    setRevalStatus('checking');
+    const issues: string[] = [];
+
+    // 1. Services still exist & active
+    const liveServiceIds = new Set((services as any[]).map((s) => s.id));
+    const missingServices = selectedServices.filter((s) => !liveServiceIds.has(s.id));
+    if (missingServices.length > 0) {
+      issues.push(
+        `${missingServices.length} selected service${missingServices.length > 1 ? 's are' : ' is'} no longer available: ${missingServices.map((s) => s.name).join(', ')}`
+      );
+    }
+    // 1b. Pricing / duration drift on still-existing services
+    const drifted = selectedServices.filter((sel) => {
+      const live: any = (services as any[]).find((s) => s.id === sel.id);
+      if (!live) return false;
+      const livePrice = live.discounted_price || live.price;
+      const selPrice = sel.discounted_price || sel.price;
+      return livePrice !== selPrice || live.duration_minutes !== sel.duration_minutes;
+    });
+    if (drifted.length > 0) {
+      issues.push(
+        `Price or duration changed for: ${drifted.map((s) => s.name).join(', ')}`
+      );
+    }
+
+    // 2. Staff still exists & active
+    if (selectedStaff) {
+      const liveStaff: any = (staff as any[]).find((s) => s.id === selectedStaff);
+      if (!liveStaff) {
+        issues.push('The previously selected staff member is no longer available.');
+      }
+    }
+
+    // 3. Time slot still available with current bookings / staff selection
+    if (selectedTimeSlot) {
+      const slot = timeSlots.find((s) => s.time === selectedTimeSlot);
+      if (!slot) {
+        issues.push('The previously selected time slot is no longer offered.');
+      } else if (!slot.available) {
+        issues.push(
+          `Time slot ${selectedTimeSlot} is no longer available: ${slot.reason || 'taken'}.`
+        );
+      }
+    } else {
+      issues.push('No time slot is selected.');
+    }
+
+    setRevalIssues(issues);
+    setRevalStatus(issues.length === 0 ? 'ok' : 'issues');
+  }, [
+    step,
+    wasRestored,
+    servicesLoading,
+    services,
+    staff,
+    selectedServices,
+    selectedStaff,
+    selectedTimeSlot,
+    timeSlots,
+  ]);
 
   const handleServiceToggle = (service: Service) => {
     setSelectedServices((prev) => {
@@ -653,8 +738,96 @@ const BookAppointment = () => {
                   </AlertDescription>
                 </Alert>
               )}
+
+              {/* Revalidation status — re-checks restored selections against fresh data */}
+              {revalStatus === 'checking' && (
+                <Alert className="mb-4 border-primary/30 bg-primary/5">
+                  <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                  <AlertTitle>Revalidating your booking…</AlertTitle>
+                  <AlertDescription>
+                    Confirming your services, staff and time slot are still available.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {revalStatus === 'issues' && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Some details have changed since you last booked</AlertTitle>
+                  <AlertDescription className="space-y-2">
+                    <ul className="list-disc pl-5 text-sm space-y-1">
+                      {revalIssues.map((issue, i) => (
+                        <li key={i}>{issue}</li>
+                      ))}
+                    </ul>
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          // Drop only the parts that are stale and send the user
+                          // back to the earliest broken step so they can re-pick.
+                          const liveServiceIds = new Set((services as any[]).map((s) => s.id));
+                          const cleanedServices = selectedServices.filter((s) =>
+                            liveServiceIds.has(s.id)
+                          );
+                          const liveStaff =
+                            selectedStaff &&
+                            (staff as any[]).find((s) => s.id === selectedStaff);
+
+                          setSelectedServices(cleanedServices);
+                          if (selectedStaff && !liveStaff) setSelectedStaff(null);
+                          setSelectedTimeSlot(null);
+
+                          if (cleanedServices.length === 0) setStep(1);
+                          else setStep(3);
+                        }}
+                      >
+                        Fix selections
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          if (user?.id && typeof window !== 'undefined') {
+                            try {
+                              window.localStorage.removeItem(STORAGE_KEY_PREFIX + user.id);
+                            } catch {
+                              // ignore
+                            }
+                          }
+                          setSelectedServices([]);
+                          setSelectedStaff(null);
+                          setSelectedTimeSlot(null);
+                          setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
+                          setWasRestored(false);
+                          setStep(1);
+                        }}
+                      >
+                        Start over
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <h2 className="text-xl font-semibold mb-4">Confirm Booking</h2>
+              {revalStatus !== 'ok' ? (
+                <Card className="bg-secondary/50">
+                  <CardContent className="p-6 space-y-3">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="h-4 bg-secondary rounded animate-pulse" />
+                    ))}
+                    <p className="text-xs text-muted-foreground text-center pt-2">
+                      Booking summary will appear once revalidation finishes.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
               <Card className="bg-secondary/50">
+              
                 <CardContent className="p-6 space-y-4">
                   <div className="flex items-center gap-3">
                     <Calendar className="w-5 h-5 text-primary" />
@@ -757,6 +930,7 @@ const BookAppointment = () => {
                   </div>
                 </CardContent>
               </Card>
+              )}
             </div>
           </motion.div>
         );
@@ -777,6 +951,8 @@ const BookAppointment = () => {
       case 4: {
         if (selectedServices.length === 0) return false;
         if (!selectedTimeSlot || !selectedSlotMeta?.available) return false;
+        // Block confirm while revalidating restored selections or if issues found
+        if (revalStatus !== 'ok') return false;
         // Final sync guard: preview totals must match invoice
         const previewSum = selectedServices.reduce(
           (s, sv) => s + (sv.discounted_price || sv.price),
