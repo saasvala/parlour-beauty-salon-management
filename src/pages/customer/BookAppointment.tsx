@@ -576,19 +576,63 @@ const BookAppointment = () => {
                       <Sparkles className="w-4 h-4 text-primary" />
                       <p className="text-sm font-medium text-foreground">Your Curated Experience</p>
                     </div>
-                    <div className="grid gap-3">
-                      {selectedServices.map((service, idx) => (
-                        <ServicePreviewCard
-                          key={service.id}
-                          name={service.name}
-                          category={service.category?.name}
-                          durationMinutes={service.duration_minutes}
-                          price={service.discounted_price || service.price}
-                          originalPrice={service.discounted_price ? service.price : undefined}
-                          index={idx}
-                        />
-                      ))}
-                    </div>
+
+                    {selectedServices.length === 0 ? (
+                      <ServicePreviewEmpty />
+                    ) : !previewReady ? (
+                      <div className="grid gap-3">
+                        {selectedServices.slice(0, 4).map((s) => (
+                          <ServicePreviewSkeleton key={s.id} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid gap-3">
+                        {selectedServices.map((service, idx) => (
+                          <ServicePreviewCard
+                            key={service.id}
+                            name={service.name}
+                            category={service.category?.name}
+                            durationMinutes={service.duration_minutes}
+                            price={service.discounted_price || service.price}
+                            originalPrice={service.discounted_price ? service.price : undefined}
+                            index={idx}
+                            // Disable expensive per-card animations when many services
+                            reduceMotion={selectedServices.length > 6}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Sync confirmation: cross-check preview totals vs final amount */}
+                    {selectedServices.length > 0 && (() => {
+                      const previewSum = selectedServices.reduce(
+                        (s, sv) => s + (sv.discounted_price || sv.price),
+                        0
+                      );
+                      const previewDuration = selectedServices.reduce(
+                        (s, sv) => s + sv.duration_minutes,
+                        0
+                      );
+                      const mismatch =
+                        Math.round(previewSum) !== Math.round(totalAmount) ||
+                        previewDuration !== totalDuration;
+                      return mismatch ? (
+                        <Alert variant="destructive" className="mt-3">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertTitle>Preview is out of sync</AlertTitle>
+                          <AlertDescription>
+                            Service preview totals don't match the final invoice. Please go back and
+                            re-select your services.
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1.5">
+                          <Check className="w-3 h-3 text-primary" />
+                          Preview matches invoice — {selectedServices.length} service
+                          {selectedServices.length > 1 ? 's' : ''}, {totalDuration} min, ₹{totalAmount}
+                        </p>
+                      );
+                    })()}
                   </div>
                   <Separator />
                   <div className="flex justify-between items-center text-lg font-bold">
