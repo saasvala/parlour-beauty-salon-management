@@ -49,19 +49,65 @@ interface StaffMember {
   profile?: { full_name?: string; avatar_url?: string };
 }
 
+const STORAGE_KEY_PREFIX = 'booking-wizard:';
+
+const loadPersisted = (userId?: string) => {
+  if (!userId || typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY_PREFIX + userId);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Drop persisted state if the saved date is in the past
+    if (parsed?.selectedDate && parsed.selectedDate < format(new Date(), 'yyyy-MM-dd')) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
 const BookAppointment = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [step, setStep] = useState(1);
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
-  const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+  // Read once on mount so a refresh restores the wizard
+  const initial = useMemo(() => loadPersisted(user?.id), [user?.id]);
+
+  const [step, setStep] = useState<number>(initial?.step ?? 1);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    initial?.selectedDate ?? format(new Date(), 'yyyy-MM-dd')
+  );
+  const [selectedServices, setSelectedServices] = useState<Service[]>(
+    initial?.selectedServices ?? []
+  );
+  const [selectedStaff, setSelectedStaff] = useState<string | null>(initial?.selectedStaff ?? null);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(
+    initial?.selectedTimeSlot ?? null
+  );
   const [customerRecord, setCustomerRecord] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewReady, setPreviewReady] = useState(false);
+
+  // Persist wizard progress so refresh on step 4 restores selections
+  useEffect(() => {
+    if (!user?.id || typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY_PREFIX + user.id,
+        JSON.stringify({
+          step,
+          selectedDate,
+          selectedServices,
+          selectedStaff,
+          selectedTimeSlot,
+        })
+      );
+    } catch {
+      // ignore quota / serialization errors
+    }
+  }, [user?.id, step, selectedDate, selectedServices, selectedStaff, selectedTimeSlot]);
 
   // Show skeletons briefly when entering step 4 or when selection changes,
   // so heavy framer-motion mounts never cause a flicker.
