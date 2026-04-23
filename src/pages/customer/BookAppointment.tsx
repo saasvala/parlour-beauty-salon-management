@@ -302,6 +302,14 @@ const BookAppointment = () => {
       });
 
       navigate('/customer/bookings');
+      // Clear persisted wizard once the booking is created
+      if (user?.id && typeof window !== 'undefined') {
+        try {
+          window.localStorage.removeItem(STORAGE_KEY_PREFIX + user.id);
+        } catch {
+          // ignore
+        }
+      }
     } catch (error: any) {
       toast({
         title: 'Booking Failed',
