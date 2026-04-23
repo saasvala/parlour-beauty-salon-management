@@ -31,7 +31,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays, parseISO, addMinutes, parse, isBefore, isAfter } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { ServicePreviewCard } from '@/components/booking/ServicePreviewCard';
+import { ServicePreviewCard, ServicePreviewSkeleton, ServicePreviewEmpty } from '@/components/booking/ServicePreviewCard';
 
 interface Service {
   id: string;
@@ -61,6 +61,19 @@ const BookAppointment = () => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [customerRecord, setCustomerRecord] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewReady, setPreviewReady] = useState(false);
+
+  // Show skeletons briefly when entering step 4 or when selection changes,
+  // so heavy framer-motion mounts never cause a flicker.
+  useEffect(() => {
+    if (step !== 4) {
+      setPreviewReady(false);
+      return;
+    }
+    setPreviewReady(false);
+    const t = setTimeout(() => setPreviewReady(true), 120);
+    return () => clearTimeout(t);
+  }, [step, selectedServices]);
 
   // Fetch customer record
   useEffect(() => {
@@ -563,19 +576,63 @@ const BookAppointment = () => {
                       <Sparkles className="w-4 h-4 text-primary" />
                       <p className="text-sm font-medium text-foreground">Your Curated Experience</p>
                     </div>
-                    <div className="grid gap-3">
-                      {selectedServices.map((service, idx) => (
-                        <ServicePreviewCard
-                          key={service.id}
-                          name={service.name}
-                          category={service.category?.name}
-                          durationMinutes={service.duration_minutes}
-                          price={service.discounted_price || service.price}
-                          originalPrice={service.discounted_price ? service.price : undefined}
-                          index={idx}
-                        />
-                      ))}
-                    </div>
+
+                    {selectedServices.length === 0 ? (
+                      <ServicePreviewEmpty />
+                    ) : !previewReady ? (
+                      <div className="grid gap-3">
+                        {selectedServices.slice(0, 4).map((s) => (
+                          <ServicePreviewSkeleton key={s.id} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid gap-3">
+                        {selectedServices.map((service, idx) => (
+                          <ServicePreviewCard
+                            key={service.id}
+                            name={service.name}
+                            category={service.category?.name}
+                            durationMinutes={service.duration_minutes}
+                            price={service.discounted_price || service.price}
+                            originalPrice={service.discounted_price ? service.price : undefined}
+                            index={idx}
+                            // Disable expensive per-card animations when many services
+                            reduceMotion={selectedServices.length > 6}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Sync confirmation: cross-check preview totals vs final amount */}
+                    {selectedServices.length > 0 && (() => {
+                      const previewSum = selectedServices.reduce(
+                        (s, sv) => s + (sv.discounted_price || sv.price),
+                        0
+                      );
+                      const previewDuration = selectedServices.reduce(
+                        (s, sv) => s + sv.duration_minutes,
+                        0
+                      );
+                      const mismatch =
+                        Math.round(previewSum) !== Math.round(totalAmount) ||
+                        previewDuration !== totalDuration;
+                      return mismatch ? (
+                        <Alert variant="destructive" className="mt-3">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertTitle>Preview is out of sync</AlertTitle>
+                          <AlertDescription>
+                            Service preview totals don't match the final invoice. Please go back and
+                            re-select your services.
+                          </AlertDescription>
+                        </Alert>
+                      ) : (
+                        <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1.5">
+                          <Check className="w-3 h-3 text-primary" />
+                          Preview matches invoice — {selectedServices.length} service
+                          {selectedServices.length > 1 ? 's' : ''}, {totalDuration} min, ₹{totalAmount}
+                        </p>
+                      );
+                    })()}
                   </div>
                   <Separator />
                   <div className="flex justify-between items-center text-lg font-bold">
@@ -601,8 +658,23 @@ const BookAppointment = () => {
         return selectedDate !== '';
       case 3:
         return selectedTimeSlot !== null && !!selectedSlotMeta?.available;
-      case 4:
-        return selectedTimeSlot !== null && !!selectedSlotMeta?.available;
+      case 4: {
+        if (selectedServices.length === 0) return false;
+        if (!selectedTimeSlot || !selectedSlotMeta?.available) return false;
+        // Final sync guard: preview totals must match invoice
+        const previewSum = selectedServices.reduce(
+          (s, sv) => s + (sv.discounted_price || sv.price),
+          0
+        );
+        const previewDuration = selectedServices.reduce(
+          (s, sv) => s + sv.duration_minutes,
+          0
+        );
+        return (
+          Math.round(previewSum) === Math.round(totalAmount) &&
+          previewDuration === totalDuration
+        );
+      }
       default:
         return false;
     }
