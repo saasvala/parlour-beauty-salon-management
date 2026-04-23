@@ -249,6 +249,86 @@ const BookAppointment = () => {
 
   const selectedSlotMeta = timeSlots.find((s) => s.time === selectedTimeSlot);
 
+  // Revalidate restored selections when reaching Step 4: re-check that
+  // services still exist & active, staff still exists & active, and the time
+  // slot is still available against freshly fetched data.
+  useEffect(() => {
+    if (step !== 4) {
+      setRevalStatus('idle');
+      setRevalIssues([]);
+      return;
+    }
+    if (!wasRestored) {
+      setRevalStatus('ok');
+      setRevalIssues([]);
+      return;
+    }
+    if (servicesLoading) {
+      setRevalStatus('checking');
+      return;
+    }
+
+    setRevalStatus('checking');
+    const issues: string[] = [];
+
+    // 1. Services still exist & active
+    const liveServiceIds = new Set((services as any[]).map((s) => s.id));
+    const missingServices = selectedServices.filter((s) => !liveServiceIds.has(s.id));
+    if (missingServices.length > 0) {
+      issues.push(
+        `${missingServices.length} selected service${missingServices.length > 1 ? 's are' : ' is'} no longer available: ${missingServices.map((s) => s.name).join(', ')}`
+      );
+    }
+    // 1b. Pricing / duration drift on still-existing services
+    const drifted = selectedServices.filter((sel) => {
+      const live: any = (services as any[]).find((s) => s.id === sel.id);
+      if (!live) return false;
+      const livePrice = live.discounted_price || live.price;
+      const selPrice = sel.discounted_price || sel.price;
+      return livePrice !== selPrice || live.duration_minutes !== sel.duration_minutes;
+    });
+    if (drifted.length > 0) {
+      issues.push(
+        `Price or duration changed for: ${drifted.map((s) => s.name).join(', ')}`
+      );
+    }
+
+    // 2. Staff still exists & active
+    if (selectedStaff) {
+      const liveStaff: any = (staff as any[]).find((s) => s.id === selectedStaff);
+      if (!liveStaff) {
+        issues.push('The previously selected staff member is no longer available.');
+      }
+    }
+
+    // 3. Time slot still available with current bookings / staff selection
+    if (selectedTimeSlot) {
+      const slot = timeSlots.find((s) => s.time === selectedTimeSlot);
+      if (!slot) {
+        issues.push('The previously selected time slot is no longer offered.');
+      } else if (!slot.available) {
+        issues.push(
+          `Time slot ${selectedTimeSlot} is no longer available: ${slot.reason || 'taken'}.`
+        );
+      }
+    } else {
+      issues.push('No time slot is selected.');
+    }
+
+    setRevalIssues(issues);
+    setRevalStatus(issues.length === 0 ? 'ok' : 'issues');
+  }, [
+    step,
+    wasRestored,
+    servicesLoading,
+    services,
+    staff,
+    selectedServices,
+    selectedStaff,
+    selectedTimeSlot,
+    timeSlots,
+  ]);
+
   const handleServiceToggle = (service: Service) => {
     setSelectedServices((prev) => {
       const exists = prev.find((s) => s.id === service.id);
