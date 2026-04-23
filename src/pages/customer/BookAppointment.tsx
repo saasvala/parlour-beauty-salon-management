@@ -658,8 +658,23 @@ const BookAppointment = () => {
         return selectedDate !== '';
       case 3:
         return selectedTimeSlot !== null && !!selectedSlotMeta?.available;
-      case 4:
-        return selectedTimeSlot !== null && !!selectedSlotMeta?.available;
+      case 4: {
+        if (selectedServices.length === 0) return false;
+        if (!selectedTimeSlot || !selectedSlotMeta?.available) return false;
+        // Final sync guard: preview totals must match invoice
+        const previewSum = selectedServices.reduce(
+          (s, sv) => s + (sv.discounted_price || sv.price),
+          0
+        );
+        const previewDuration = selectedServices.reduce(
+          (s, sv) => s + sv.duration_minutes,
+          0
+        );
+        return (
+          Math.round(previewSum) === Math.round(totalAmount) &&
+          previewDuration === totalDuration
+        );
+      }
       default:
         return false;
     }
