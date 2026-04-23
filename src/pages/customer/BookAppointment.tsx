@@ -930,6 +930,7 @@ const BookAppointment = () => {
                   </div>
                 </CardContent>
               </Card>
+              )}
             </div>
           </motion.div>
         );
