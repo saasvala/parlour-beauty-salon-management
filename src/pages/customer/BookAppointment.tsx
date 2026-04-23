@@ -91,6 +91,11 @@ const BookAppointment = () => {
   const [customerRecord, setCustomerRecord] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewReady, setPreviewReady] = useState(false);
+  // True when wizard state was restored from localStorage on mount
+  const [wasRestored, setWasRestored] = useState<boolean>(
+    !!(initial && (initial.selectedServices?.length || initial.selectedTimeSlot))
+  );
+  const [restoreDismissed, setRestoreDismissed] = useState(false);
 
   // Persist wizard progress so refresh on step 4 restores selections
   useEffect(() => {
