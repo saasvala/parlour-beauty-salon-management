@@ -951,6 +951,8 @@ const BookAppointment = () => {
       case 4: {
         if (selectedServices.length === 0) return false;
         if (!selectedTimeSlot || !selectedSlotMeta?.available) return false;
+        // Block confirm while revalidating restored selections or if issues found
+        if (revalStatus !== 'ok') return false;
         // Final sync guard: preview totals must match invoice
         const previewSum = selectedServices.reduce(
           (s, sv) => s + (sv.discounted_price || sv.price),
