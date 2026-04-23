@@ -61,6 +61,19 @@ const BookAppointment = () => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   const [customerRecord, setCustomerRecord] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewReady, setPreviewReady] = useState(false);
+
+  // Show skeletons briefly when entering step 4 or when selection changes,
+  // so heavy framer-motion mounts never cause a flicker.
+  useEffect(() => {
+    if (step !== 4) {
+      setPreviewReady(false);
+      return;
+    }
+    setPreviewReady(false);
+    const t = setTimeout(() => setPreviewReady(true), 120);
+    return () => clearTimeout(t);
+  }, [step, selectedServices]);
 
   // Fetch customer record
   useEffect(() => {
