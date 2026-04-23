@@ -814,7 +814,20 @@ const BookAppointment = () => {
               )}
 
               <h2 className="text-xl font-semibold mb-4">Confirm Booking</h2>
+              {revalStatus !== 'ok' ? (
+                <Card className="bg-secondary/50">
+                  <CardContent className="p-6 space-y-3">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="h-4 bg-secondary rounded animate-pulse" />
+                    ))}
+                    <p className="text-xs text-muted-foreground text-center pt-2">
+                      Booking summary will appear once revalidation finishes.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
               <Card className="bg-secondary/50">
+              
                 <CardContent className="p-6 space-y-4">
                   <div className="flex items-center gap-3">
                     <Calendar className="w-5 h-5 text-primary" />
