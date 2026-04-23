@@ -26,6 +26,8 @@ import {
   Loader2,
   AlertCircle,
   Info,
+  RotateCcw,
+  X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format, addDays, parseISO, addMinutes, parse, isBefore, isAfter } from 'date-fns';
@@ -89,6 +91,11 @@ const BookAppointment = () => {
   const [customerRecord, setCustomerRecord] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewReady, setPreviewReady] = useState(false);
+  // True when wizard state was restored from localStorage on mount
+  const [wasRestored, setWasRestored] = useState<boolean>(
+    !!(initial && (initial.selectedServices?.length || initial.selectedTimeSlot))
+  );
+  const [restoreDismissed, setRestoreDismissed] = useState(false);
 
   // Persist wizard progress so refresh on step 4 restores selections
   useEffect(() => {
@@ -591,6 +598,61 @@ const BookAppointment = () => {
             className="space-y-6"
           >
             <div>
+              {wasRestored && !restoreDismissed && (
+                <Alert className="mb-4 border-primary/40 bg-primary/5">
+                  <RotateCcw className="h-4 w-4 text-primary" />
+                  <AlertTitle className="flex items-center justify-between gap-2 pr-6">
+                    <span>Your selections were restored</span>
+                    <button
+                      type="button"
+                      aria-label="Dismiss restore notice"
+                      onClick={() => setRestoreDismissed(true)}
+                      className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </AlertTitle>
+                  <AlertDescription className="space-y-2">
+                    <p>
+                      We brought back your services, date{selectedStaff ? ', staff' : ''} and time slot
+                      from your previous session. Review below and confirm, or start fresh.
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          if (user?.id && typeof window !== 'undefined') {
+                            try {
+                              window.localStorage.removeItem(STORAGE_KEY_PREFIX + user.id);
+                            } catch {
+                              // ignore
+                            }
+                          }
+                          setSelectedServices([]);
+                          setSelectedStaff(null);
+                          setSelectedTimeSlot(null);
+                          setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
+                          setWasRestored(false);
+                          setRestoreDismissed(true);
+                          setStep(1);
+                        }}
+                      >
+                        Start over
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setRestoreDismissed(true)}
+                      >
+                        Looks good
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
               <h2 className="text-xl font-semibold mb-4">Confirm Booking</h2>
               <Card className="bg-secondary/50">
                 <CardContent className="p-6 space-y-4">
