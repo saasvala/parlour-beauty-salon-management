@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { NotificationBell } from '@/components/NotificationBell';
 
 interface NavItem {
   label: string;
@@ -80,9 +81,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         { label: 'Staff', icon: UserCircle, href: '/dashboard/staff' },
         { label: 'Services', icon: Scissors, href: '/dashboard/services' },
         { label: 'Packages', icon: Package, href: '/dashboard/packages' },
+        { label: 'Branches', icon: Building2, href: '/dashboard/branches' },
         { label: 'Billing', icon: CreditCard, href: '/dashboard/billing' },
         { label: 'Expenses', icon: Receipt, href: '/dashboard/expenses' },
         { label: 'Inventory', icon: ShoppingBag, href: '/dashboard/inventory' },
+        { label: 'Reviews', icon: Star, href: '/dashboard/reviews' },
         { label: 'Reports', icon: BarChart3, href: '/dashboard/reports' },
         { label: 'Settings', icon: Settings, href: '/dashboard/settings' },
       ];
@@ -174,10 +177,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               <Button variant="ghost" size="icon"><Home className="w-5 h-5" /></Button>
             </Link>
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="relative" onClick={() => navigate(settingsHref)} title="Notifications">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
-            </Button>
+            <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full focus:outline-none focus:ring-2 focus:ring-ring" aria-label="Open user menu">
@@ -385,10 +385,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               </Button>
             </Link>
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="relative" onClick={() => navigate(settingsHref)} title="Notifications">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full" />
-            </Button>
+            <NotificationBell />
           </div>
         </header>
 
