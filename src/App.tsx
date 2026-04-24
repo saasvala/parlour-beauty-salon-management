@@ -27,6 +27,9 @@ import SettingsPage from "./pages/dashboard/Settings";
 import ExpensesPage from "./pages/dashboard/Expenses";
 import PackagesPage from "./pages/dashboard/Packages";
 import InventoryPage from "./pages/dashboard/Inventory";
+import BranchesPage from "./pages/dashboard/Branches";
+import ReviewsPage from "./pages/dashboard/Reviews";
+import NotificationsPage from "./pages/Notifications";
 
 // Receptionist
 import ReceptionistDashboard from "./pages/receptionist/Dashboard";
@@ -77,6 +80,9 @@ const App = () => (
             <Route path="/dashboard/expenses" element={<ProtectedRoute allowedRoles={ownerRoles}><ExpensesPage /></ProtectedRoute>} />
             <Route path="/dashboard/packages" element={<ProtectedRoute allowedRoles={ownerRoles}><PackagesPage /></ProtectedRoute>} />
             <Route path="/dashboard/inventory" element={<ProtectedRoute allowedRoles={ownerRoles}><InventoryPage /></ProtectedRoute>} />
+            <Route path="/dashboard/branches" element={<ProtectedRoute allowedRoles={ownerRoles}><BranchesPage /></ProtectedRoute>} />
+            <Route path="/dashboard/reviews" element={<ProtectedRoute allowedRoles={ownerRoles}><ReviewsPage /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
             {/* Receptionist Routes */}
             <Route path="/receptionist" element={<ProtectedRoute allowedRoles={['receptionist', 'salon_owner', 'branch_manager']}><ReceptionistDashboard /></ProtectedRoute>} />

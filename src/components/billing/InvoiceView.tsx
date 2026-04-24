@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Printer, Download, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { generateInvoicePdf } from '@/lib/invoicePdf';
 
 interface InvoiceViewProps {
   invoice: {
@@ -99,7 +100,7 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({
           <Printer className="w-4 h-4 mr-2" />
           Print
         </Button>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={() => generateInvoicePdf({ invoice, salon, customer: invoice.appointment?.customer, services })}>
           <Download className="w-4 h-4 mr-2" />
           Download PDF
         </Button>
