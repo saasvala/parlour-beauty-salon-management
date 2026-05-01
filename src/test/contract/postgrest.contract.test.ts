@@ -27,41 +27,39 @@ import {
 const d = skipIfNoBackend ? describe.skip : describe;
 
 d("PostgREST contract: status & schemas", () => {
-  it("GET /salons?is_active=eq.true → 200 + Salon[]", async () => {
-    const res = await restGet("salons?select=id,name,is_active&is_active=eq.true&limit=5");
-    expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toContain("application/json");
-    const json = await res.json();
-    const parsed = z.array(SalonRowSchema).safeParse(json);
-    expect(parsed.success).toBe(true);
-  });
-
-  it("GET /services with active filter → 200 + Service[]", async () => {
-    const res = await restGet(
-      "services?select=id,name,duration_minutes,price,is_active&is_active=eq.true&limit=5",
-    );
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    const parsed = z.array(ServiceRowSchema).safeParse(json);
-    expect(parsed.success).toBe(true);
-  });
-
-  it("GET /subscription_plans → 200 + Plan[]", async () => {
+  it("GET /subscription_plans → 200 + Plan[] (publicly readable)", async () => {
     const res = await restGet(
       "subscription_plans?select=id,name,price_monthly,price_yearly,is_active&limit=10",
     );
     expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("application/json");
     const json = await res.json();
     const parsed = z.array(PlanRowSchema).safeParse(json);
     expect(parsed.success).toBe(true);
   });
 
-  it("GET /appointments anonymously → 200 + [] (RLS blocks rows, not request)", async () => {
-    const res = await restGet("appointments?select=id&limit=1");
+  it("GET /service_categories?is_global=eq.true → 200 + array", async () => {
+    const res = await restGet(
+      "service_categories?select=id,name,is_global,is_active&is_global=eq.true&limit=10",
+    );
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(Array.isArray(json)).toBe(true);
-    expect(json).toHaveLength(0);
+  });
+
+  it("RLS-protected tables (salons/services/appointments) reject anonymous reads with structured error", async () => {
+    // Contract: anonymous reads on tenant data return 401/403 with PG error JSON,
+    // never 500 and never raw HTML. Validates RLS hardening contract.
+    for (const path of [
+      "salons?select=id&limit=1",
+      "services?select=id&limit=1",
+      "appointments?select=id&limit=1",
+    ]) {
+      const res = await restGet(path);
+      expect([401, 403]).toContain(res.status);
+      const json = await res.json();
+      expect(PostgrestErrorSchema.safeParse(json).success).toBe(true);
+    }
   });
 });
 
