@@ -18,8 +18,6 @@ import {
   restUrl,
   SUPABASE_ANON_KEY,
   PostgrestErrorSchema,
-  SalonRowSchema,
-  ServiceRowSchema,
   PlanRowSchema,
   skipIfNoBackend,
 } from "./helpers";
