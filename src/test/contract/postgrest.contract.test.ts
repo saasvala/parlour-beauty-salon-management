@@ -25,39 +25,39 @@ import {
 const d = skipIfNoBackend ? describe.skip : describe;
 
 d("PostgREST contract: status & schemas", () => {
-  it("GET /subscription_plans → 200 + Plan[] (publicly readable)", async () => {
-    const res = await restGet(
-      "subscription_plans?select=id,name,price_monthly,price_yearly,is_active&limit=10",
-    );
-    expect(res.status).toBe(200);
-    expect(res.headers.get("content-type")).toContain("application/json");
-    const json = await res.json();
-    const parsed = z.array(PlanRowSchema).safeParse(json);
-    expect(parsed.success).toBe(true);
-  });
-
-  it("GET /service_categories?is_global=eq.true → 200 + array", async () => {
-    const res = await restGet(
-      "service_categories?select=id,name,is_global,is_active&is_global=eq.true&limit=10",
-    );
-    expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(Array.isArray(json)).toBe(true);
-  });
-
-  it("RLS-protected tables (salons/services/appointments) reject anonymous reads with structured error", async () => {
-    // Contract: anonymous reads on tenant data return 401/403 with PG error JSON,
-    // never 500 and never raw HTML. Validates RLS hardening contract.
-    for (const path of [
-      "salons?select=id&limit=1",
-      "services?select=id&limit=1",
-      "appointments?select=id&limit=1",
-    ]) {
-      const res = await restGet(path);
+  it("RLS-protected tables reject anonymous reads with structured error JSON (never 5xx, never HTML)", async () => {
+    // Contract: every tenant-scoped table must respond with 401/403 and a
+    // PostgREST error envelope when called anonymously. This is the
+    // hardened post-RLS-audit behaviour — no row leakage, no 500s.
+    const tables = [
+      "salons",
+      "services",
+      "service_categories",
+      "appointments",
+      "customers",
+      "staff",
+      "subscription_plans",
+      "profiles",
+      "invoices",
+      "payments",
+    ];
+    for (const t of tables) {
+      const res = await restGet(`${t}?select=id&limit=1`);
       expect([401, 403]).toContain(res.status);
+      expect(res.headers.get("content-type") || "").toContain("application/json");
       const json = await res.json();
-      expect(PostgrestErrorSchema.safeParse(json).success).toBe(true);
+      const parsed = PostgrestErrorSchema.safeParse(json);
+      expect(parsed.success, `${t} returned non-PG error: ${JSON.stringify(json)}`).toBe(true);
     }
+  });
+
+  it("PostgREST root → 200 with OpenAPI-ish JSON (sanity check API is up)", async () => {
+    const res = await restGet("");
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    // PostgREST returns a swagger-style document at the root.
+    expect(typeof json).toBe("object");
+    expect(json).not.toBeNull();
   });
 });
 
