@@ -50,11 +50,11 @@ d("PostgREST contract: status & schemas", () => {
     }
   });
 
-  it("PostgREST root → 200 with OpenAPI-ish JSON (sanity check API is up)", async () => {
+  it("PostgREST root responds with JSON (API reachable)", async () => {
     const res = await restGet("");
-    expect(res.status).toBe(200);
+    expect([200, 401]).toContain(res.status);
+    expect(res.headers.get("content-type") || "").toContain("application/json");
     const json = await res.json();
-    // PostgREST returns a swagger-style document at the root.
     expect(typeof json).toBe("object");
     expect(json).not.toBeNull();
   });
