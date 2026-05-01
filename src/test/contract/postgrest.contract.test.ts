@@ -18,7 +18,6 @@ import {
   restUrl,
   SUPABASE_ANON_KEY,
   PostgrestErrorSchema,
-  PlanRowSchema,
   skipIfNoBackend,
 } from "./helpers";
 
