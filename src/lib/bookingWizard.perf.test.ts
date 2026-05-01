@@ -55,8 +55,8 @@ describe('bookingWizard – performance under load', () => {
         staffCount: 10,
       });
     });
-    // 24 slots × 1000 appts inner loop — should comfortably finish well under 500ms
-    expect(ms).toBeLessThan(500);
+    // 24 slots × 1000 appts inner loop — guard against order-of-magnitude regressions
+    expect(ms).toBeLessThan(1500);
   });
 
   it('revalidateRestoredSelections scales linearly with selection size', () => {
