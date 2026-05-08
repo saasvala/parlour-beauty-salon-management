@@ -267,6 +267,27 @@ const SuperAdminDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!detailsSalon} onOpenChange={(o) => !o && setDetailsSalon(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{detailsSalon?.name}</DialogTitle>
+            <DialogDescription>Salon details and subscription</DialogDescription>
+          </DialogHeader>
+          {detailsSalon && (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Email</span><span>{detailsSalon.email || '-'}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{detailsSalon.phone || '-'}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">City</span><span>{detailsSalon.city || '-'}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">State</span><span>{detailsSalon.state || '-'}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">GST</span><span>{detailsSalon.gst_number || '-'}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Subscription</span><Badge variant="outline" className="capitalize">{detailsSalon.subscription_status}</Badge></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Created</span><span>{format(new Date(detailsSalon.created_at), 'MMM d, yyyy')}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Status</span><Badge variant={detailsSalon.is_active ? 'default' : 'secondary'}>{detailsSalon.is_active ? 'Active' : 'Inactive'}</Badge></div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
