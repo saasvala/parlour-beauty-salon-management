@@ -186,7 +186,7 @@ const SuperAdminDashboard = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>All Salons</CardTitle>
-            <Button className="btn-gradient">
+            <Button className="btn-gradient" onClick={() => navigate('/super-admin/salons')}>
               <Plus className="w-4 h-4 mr-2" />
               Add Salon
             </Button>
