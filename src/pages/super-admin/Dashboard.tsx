@@ -56,11 +56,10 @@ const SuperAdminDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch salons
       const { data: salonsData, count: salonCount } = await supabase
         .from('salons')
         .select('*', { count: 'exact' });
-      
+
       if (salonsData) {
         setSalons(salonsData as Salon[]);
         setStats(prev => ({
@@ -70,16 +69,30 @@ const SuperAdminDashboard = () => {
         }));
       }
 
-      // Fetch user count
       const { count: userCount } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true });
-      
+
+      // Compute monthly revenue from completed payments this month
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const { data: paymentsData } = await supabase
+        .from('payments')
+        .select('amount, payment_status, created_at')
+        .gte('created_at', monthStart.toISOString())
+        .eq('payment_status', 'completed');
+
+      const monthlyRevenue = (paymentsData || []).reduce(
+        (sum, p: any) => sum + Number(p.amount || 0),
+        0
+      );
+
       setStats(prev => ({
         ...prev,
         totalUsers: userCount || 0,
+        monthlyRevenue,
       }));
-
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
