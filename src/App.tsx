@@ -14,6 +14,12 @@ import NotFound from "./pages/NotFound";
 
 // Super Admin
 import SuperAdminDashboard from "./pages/super-admin/Dashboard";
+import SuperAdminSalons from "./pages/super-admin/Salons";
+import SuperAdminSubscriptions from "./pages/super-admin/Subscriptions";
+import SuperAdminUsers from "./pages/super-admin/Users";
+import SuperAdminServices from "./pages/super-admin/Services";
+import SuperAdminAnalytics from "./pages/super-admin/Analytics";
+import SuperAdminSettings from "./pages/super-admin/Settings";
 
 // Salon Owner / Dashboard
 import SalonOwnerDashboard from "./pages/dashboard/Dashboard";
@@ -33,14 +39,26 @@ import NotificationsPage from "./pages/Notifications";
 
 // Receptionist
 import ReceptionistDashboard from "./pages/receptionist/Dashboard";
+import ReceptionistAppointments from "./pages/receptionist/Appointments";
+import ReceptionistCustomers from "./pages/receptionist/Customers";
+import ReceptionistBilling from "./pages/receptionist/Billing";
+import ReceptionistWalkin from "./pages/receptionist/Walkin";
+import ReceptionistSummary from "./pages/receptionist/Summary";
 
 // Staff / Beautician
 import StaffDashboard from "./pages/staff/Dashboard";
+import StaffAppointmentsPage from "./pages/staff/Appointments";
+import StaffAttendancePage from "./pages/staff/Attendance";
+import StaffCommissionPage from "./pages/staff/Commission";
+import StaffSchedulePage from "./pages/staff/Schedule";
 
 // Customer
 import CustomerDashboard from "./pages/customer/Dashboard";
 import BookAppointment from "./pages/customer/BookAppointment";
 import CustomerBookings from "./pages/customer/Bookings";
+import CustomerPackages from "./pages/customer/Packages";
+import CustomerInvoices from "./pages/customer/Invoices";
+import CustomerReviews from "./pages/customer/Reviews";
 
 // Dev tools
 import RlsTester from "./pages/dev/RlsTester";
@@ -66,7 +84,12 @@ const App = () => (
 
             {/* Super Admin Routes */}
             <Route path="/super-admin" element={<ProtectedRoute allowedRoles={['super_admin']}><SuperAdminDashboard /></ProtectedRoute>} />
-            <Route path="/super-admin/*" element={<ProtectedRoute allowedRoles={['super_admin']}><SuperAdminDashboard /></ProtectedRoute>} />
+            <Route path="/super-admin/salons" element={<ProtectedRoute allowedRoles={['super_admin']}><SuperAdminSalons /></ProtectedRoute>} />
+            <Route path="/super-admin/subscriptions" element={<ProtectedRoute allowedRoles={['super_admin']}><SuperAdminSubscriptions /></ProtectedRoute>} />
+            <Route path="/super-admin/users" element={<ProtectedRoute allowedRoles={['super_admin']}><SuperAdminUsers /></ProtectedRoute>} />
+            <Route path="/super-admin/services" element={<ProtectedRoute allowedRoles={['super_admin']}><SuperAdminServices /></ProtectedRoute>} />
+            <Route path="/super-admin/analytics" element={<ProtectedRoute allowedRoles={['super_admin']}><SuperAdminAnalytics /></ProtectedRoute>} />
+            <Route path="/super-admin/settings" element={<ProtectedRoute allowedRoles={['super_admin']}><SuperAdminSettings /></ProtectedRoute>} />
 
             {/* Salon Owner / Admin Routes */}
             <Route path="/dashboard" element={<ProtectedRoute allowedRoles={ownerRoles}><SalonOwnerDashboard /></ProtectedRoute>} />
@@ -86,17 +109,26 @@ const App = () => (
 
             {/* Receptionist Routes */}
             <Route path="/receptionist" element={<ProtectedRoute allowedRoles={['receptionist', 'salon_owner', 'branch_manager']}><ReceptionistDashboard /></ProtectedRoute>} />
-            <Route path="/receptionist/*" element={<ProtectedRoute allowedRoles={['receptionist', 'salon_owner', 'branch_manager']}><ReceptionistDashboard /></ProtectedRoute>} />
+            <Route path="/receptionist/appointments" element={<ProtectedRoute allowedRoles={['receptionist', 'salon_owner', 'branch_manager']}><ReceptionistAppointments /></ProtectedRoute>} />
+            <Route path="/receptionist/walkin" element={<ProtectedRoute allowedRoles={['receptionist', 'salon_owner', 'branch_manager']}><ReceptionistWalkin /></ProtectedRoute>} />
+            <Route path="/receptionist/customers" element={<ProtectedRoute allowedRoles={['receptionist', 'salon_owner', 'branch_manager']}><ReceptionistCustomers /></ProtectedRoute>} />
+            <Route path="/receptionist/billing" element={<ProtectedRoute allowedRoles={['receptionist', 'salon_owner', 'branch_manager']}><ReceptionistBilling /></ProtectedRoute>} />
+            <Route path="/receptionist/summary" element={<ProtectedRoute allowedRoles={['receptionist', 'salon_owner', 'branch_manager']}><ReceptionistSummary /></ProtectedRoute>} />
 
             {/* Staff / Beautician Routes */}
             <Route path="/staff" element={<ProtectedRoute allowedRoles={['beautician', 'salon_owner', 'branch_manager']}><StaffDashboard /></ProtectedRoute>} />
-            <Route path="/staff/*" element={<ProtectedRoute allowedRoles={['beautician', 'salon_owner', 'branch_manager']}><StaffDashboard /></ProtectedRoute>} />
+            <Route path="/staff/appointments" element={<ProtectedRoute allowedRoles={['beautician', 'salon_owner', 'branch_manager']}><StaffAppointmentsPage /></ProtectedRoute>} />
+            <Route path="/staff/attendance" element={<ProtectedRoute allowedRoles={['beautician', 'salon_owner', 'branch_manager']}><StaffAttendancePage /></ProtectedRoute>} />
+            <Route path="/staff/commission" element={<ProtectedRoute allowedRoles={['beautician', 'salon_owner', 'branch_manager']}><StaffCommissionPage /></ProtectedRoute>} />
+            <Route path="/staff/schedule" element={<ProtectedRoute allowedRoles={['beautician', 'salon_owner', 'branch_manager']}><StaffSchedulePage /></ProtectedRoute>} />
 
             {/* Customer Routes */}
             <Route path="/customer" element={<ProtectedRoute allowedRoles={['customer']}><CustomerDashboard /></ProtectedRoute>} />
             <Route path="/customer/book" element={<ProtectedRoute allowedRoles={['customer']}><BookAppointment /></ProtectedRoute>} />
             <Route path="/customer/bookings" element={<ProtectedRoute allowedRoles={['customer']}><CustomerBookings /></ProtectedRoute>} />
-            <Route path="/customer/*" element={<ProtectedRoute allowedRoles={['customer']}><CustomerDashboard /></ProtectedRoute>} />
+            <Route path="/customer/packages" element={<ProtectedRoute allowedRoles={['customer']}><CustomerPackages /></ProtectedRoute>} />
+            <Route path="/customer/invoices" element={<ProtectedRoute allowedRoles={['customer']}><CustomerInvoices /></ProtectedRoute>} />
+            <Route path="/customer/reviews" element={<ProtectedRoute allowedRoles={['customer']}><CustomerReviews /></ProtectedRoute>} />
 
             {/* Legacy admin route redirect */}
             <Route path="/admin" element={<Auth />} />
