@@ -53,7 +53,21 @@ const CustomerInvoices = () => {
 
   const handleDownload = async (invoice: any) => {
     try {
-      await generateInvoicePdf(invoice);
+      const { data: appt } = await supabase
+        .from('appointments')
+        .select('*, salon:salons(*), customer:customers(*), appointment_services(*, service:services(name, duration_minutes))')
+        .eq('id', invoice.appointment_id)
+        .maybeSingle();
+      generateInvoicePdf({
+        invoice,
+        salon: appt?.salon,
+        customer: appt?.customer,
+        services: (appt?.appointment_services || []).map((s: any) => ({
+          name: s.service?.name,
+          price: Number(s.price || 0),
+          duration_minutes: s.duration_minutes,
+        })),
+      });
     } catch (e: any) {
       toast({ title: 'Error', description: e?.message || 'Failed to download invoice', variant: 'destructive' });
     }
