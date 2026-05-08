@@ -134,8 +134,8 @@ const SuperAdminDashboard = () => {
       title: 'Active Salons',
       value: stats.activeSalons,
       icon: CheckCircle,
-      color: 'text-success',
-      bgColor: 'bg-success/10',
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
     },
     {
       title: 'Total Users',
