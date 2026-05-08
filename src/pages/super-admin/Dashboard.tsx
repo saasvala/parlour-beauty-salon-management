@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Building2,
   Users,
-  CreditCard,
   TrendingUp,
-  AlertCircle,
   Plus,
   Eye,
   MoreVertical,
@@ -31,7 +37,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { motion } from 'framer-motion';
-import { Salon, SubscriptionPlan } from '@/types/database';
+import { Salon } from '@/types/database';
+import { format } from 'date-fns';
 
 interface DashboardStats {
   totalSalons: number;
