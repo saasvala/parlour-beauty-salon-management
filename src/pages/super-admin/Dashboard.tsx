@@ -48,6 +48,7 @@ interface DashboardStats {
 }
 
 const SuperAdminDashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({
     totalSalons: 0,
     activeSalons: 0,
@@ -56,6 +57,7 @@ const SuperAdminDashboard = () => {
   });
   const [salons, setSalons] = useState<Salon[]>([]);
   const [loading, setLoading] = useState(true);
+  const [detailsSalon, setDetailsSalon] = useState<Salon | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
