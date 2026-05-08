@@ -148,8 +148,8 @@ const SuperAdminDashboard = () => {
       title: 'Monthly Revenue',
       value: `₹${stats.monthlyRevenue.toLocaleString()}`,
       icon: TrendingUp,
-      color: 'text-yellow-500',
-      bgColor: 'bg-yellow-500/10',
+      color: 'text-accent',
+      bgColor: 'bg-accent/10',
     },
   ];
 
