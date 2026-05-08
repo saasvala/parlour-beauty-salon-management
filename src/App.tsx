@@ -14,6 +14,12 @@ import NotFound from "./pages/NotFound";
 
 // Super Admin
 import SuperAdminDashboard from "./pages/super-admin/Dashboard";
+import SuperAdminSalons from "./pages/super-admin/Salons";
+import SuperAdminSubscriptions from "./pages/super-admin/Subscriptions";
+import SuperAdminUsers from "./pages/super-admin/Users";
+import SuperAdminServices from "./pages/super-admin/Services";
+import SuperAdminAnalytics from "./pages/super-admin/Analytics";
+import SuperAdminSettings from "./pages/super-admin/Settings";
 
 // Salon Owner / Dashboard
 import SalonOwnerDashboard from "./pages/dashboard/Dashboard";
@@ -33,14 +39,26 @@ import NotificationsPage from "./pages/Notifications";
 
 // Receptionist
 import ReceptionistDashboard from "./pages/receptionist/Dashboard";
+import ReceptionistAppointments from "./pages/receptionist/Appointments";
+import ReceptionistCustomers from "./pages/receptionist/Customers";
+import ReceptionistBilling from "./pages/receptionist/Billing";
+import ReceptionistWalkin from "./pages/receptionist/Walkin";
+import ReceptionistSummary from "./pages/receptionist/Summary";
 
 // Staff / Beautician
 import StaffDashboard from "./pages/staff/Dashboard";
+import StaffAppointmentsPage from "./pages/staff/Appointments";
+import StaffAttendancePage from "./pages/staff/Attendance";
+import StaffCommissionPage from "./pages/staff/Commission";
+import StaffSchedulePage from "./pages/staff/Schedule";
 
 // Customer
 import CustomerDashboard from "./pages/customer/Dashboard";
 import BookAppointment from "./pages/customer/BookAppointment";
 import CustomerBookings from "./pages/customer/Bookings";
+import CustomerPackages from "./pages/customer/Packages";
+import CustomerInvoices from "./pages/customer/Invoices";
+import CustomerReviews from "./pages/customer/Reviews";
 
 // Dev tools
 import RlsTester from "./pages/dev/RlsTester";
