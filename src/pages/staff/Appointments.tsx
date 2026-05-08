@@ -37,7 +37,7 @@ const StaffAppointments = () => {
   }, [staff?.id]);
 
   const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
+    const { error } = await supabase.from('appointments').update({ status: status as any }).eq('id', id);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
       return;
